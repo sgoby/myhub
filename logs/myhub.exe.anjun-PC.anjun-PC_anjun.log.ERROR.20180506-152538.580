@@ -1,5 +1,0 @@
-Log file created at: 2018/05/06 15:25:38
-Running on machine: anjun-PC
-Binary: Built with gc go1.9 for windows/amd64
-Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
-F0506 15:25:37.992618     580 main.go:30] open D:\golang\workspace\src\github.com\sgoby\myhub/conf/myhub.xml: The system cannot find the file specified.
