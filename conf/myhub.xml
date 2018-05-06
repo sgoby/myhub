@@ -47,7 +47,7 @@
     <schema>
         <dataBase name="db1" >
             <!--  rule: hash | range | date_month | date_day  -->
-            <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="D:/workspace/golang/src/github.com/sgoby/myhub/conf/dealer_info.sql"/>
+            <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="conf/dealer_info.sql"/>
             <table name="lb_user" ruleKey="uid" rule="rang_2" createSql=""/>
 
         </dataBase>
