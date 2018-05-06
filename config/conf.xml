@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<kingshard>
+<myhub>
     <serveListen>0.0.0.0:8520</serveListen>
     <!-- <include file="struts-plugin.xml" />  -->
     <serveUser>root</serveUser>
@@ -69,4 +69,4 @@
             <shard nodeDataBase="lb_livegame" rowLimit="3000000" between="1-5" />
         </rule>
     </rules>
-</kingshard>  
+</myhub>  
