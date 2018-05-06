@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<kingshard>
+    <serveListen>0.0.0.0:8520</serveListen>
+    <!-- <include file="struts-plugin.xml" />  -->
+    <serveUser>root</serveUser>
+    <servePassword>123456</servePassword>
+    <serveCharset>utf-8</serveCharset>
+
+    <webListen>0.0.0.0:9595</webListen>
+    <webUser>admin</webUser>
+    <webPassword>admin</webPassword>
+
+    <logPath>run.log</logPath>
+    <!--  log level[debug|info|warn|error],default error  -->
+    <logLevel>debug</logLevel>
+    <!--  if set log_sql(on|off) off,the sql log will not output  -->
+    <logSql>on</logSql>
+    <!--  only log the query that take more than slow_log_time (ms)  -->
+    <slowLogTime>100</slowLogTime>
+
+    <allowIPs>127.0.0.1</allowIPs>
+    <!-- the path of blacklist sql file -->
+    <blacklistSql></blacklistSql>
+
+    <node>
+        <hosts>
+            <host type="write" name="host_1" address="127.0.0.1:3306" user="root" password="123456">
+                <!--
+                <host type="read" name="host_1_1"  address = "192.168.31.231:3306" user = "root" password = "123456" weight="1"/>
+                <host type="read" name="node1_1"  address = "" user = "" password = "" weight="1"/>
+                <host type="read" name="node1_2"  address = "" user = "" password = "" weight="1"/>
+                -->
+            </host>
+            <host type="write" name="host_2" address="192.168.31.231:3306" user="root" password="123456"/>
+        </hosts>
+        <dataBases>
+            <dataBase name="test" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+            <dataBase name="lb_livegame" host="host_2" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+            <!--
+            <dataBase name="db2" host =""  maxOpenConns="16" maxIdleConns = "4" maxIdleTime = "30"/>
+            <dataBase name="db3" host =""  maxOpenConns="16" maxIdleConns = "4" maxIdleTime = "30"/>
+            <dataBase name="db5" host =""  maxOpenConns="16" maxIdleConns = "4" maxIdleTime = "30"/>
+            -->
+        </dataBases>
+    </node>
+    <!-- 分片后的表 -->
+    <schema>
+        <dataBase name="db1" >
+            <!--  rule: hash | range | date_month | date_day  -->
+            <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="D:/workspace/golang/src/github.com/sgoby/myshard/conf/dealer_info.sql"/>
+            <table name="lb_user" ruleKey="uid" rule="rang_2" createSql=""/>
+
+        </dataBase>
+        <dataBase name="test_1" proxyDataBase="test"/>
+    </schema>
+    <rules>
+        <rule name="rang_1" ruleType="range" format="%04d">
+            <!-- tableRowLimit : 2d,m,y,h-->
+            <shard nodeDataBase="test" rowLimit="10000" between="1-8" />
+            <!--
+            <shard nodeDataBase="test" rowLimit="10000" between="10-20" /> -->
+            <!--
+            <shard nodeDataBase="db2" rowLimit="100000000" between="11-20" format="Ymd"/>
+            <shard nodeDataBase="db3" rowLimit="100000000" between="21-30"/>
+            -->
+        </rule>
+        <rule name="rang_2" ruleType="range">
+            <!-- tableRowLimit : 2d,m,y,h-->
+            <shard nodeDataBase="lb_livegame" rowLimit="3000000" between="1-5" />
+        </rule>
+    </rules>
+</kingshard>  
