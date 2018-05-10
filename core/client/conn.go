@@ -30,7 +30,7 @@ type Connector struct {
 	MyConn         *mysql.Conn
 	DbName         string
 	InTransaction  bool                 // turn on the transaction else
-	TransactionMap map[string]*mysql.Tx //[dsn]
+	transactionMap map[string]*mysql.Tx //[dsn]
 	mu             *sync.Mutex
 }
 
@@ -44,6 +44,7 @@ func NewConnector(c *mysql.Conn) *Connector {
 	return &Connector{
 		MyConn: c,
 		mu:     new(sync.Mutex),
+		transactionMap:make(map[string]*mysql.Tx),
 	}
 }
 
@@ -74,26 +75,70 @@ func (this *Connector) AutoCrateTables() error {
 
 //rollback transaction
 func (this *Connector) TxRollback() error {
-	for _, tx := range this.TransactionMap {
-		return tx.Rollback()
+	ctx, cancel := context.WithTimeout(core.App().Context, time.Second*EXECUTE_TIMEOUT) //default timeout
+	defer cancel()
+	var execErr error;
+	var wg sync.WaitGroup
+	for _, tx := range this.transactionMap {
+		wg.Add(1)
+		go func(pTx *mysql.Tx, mctx context.Context){
+			defer wg.Done()
+			select {
+			case <-mctx.Done():
+				execErr = mctx.Err()
+				return
+			default:
+			}
+			//glog.Info("Rollback: ")
+			err := pTx.Rollback()
+			if err != nil {
+				cancel()
+				glog.Error(err)
+				execErr = err
+			}
+		}(tx,ctx)
 	}
-	return nil
+	return execErr
 }
 func (this *Connector) TxCommit() error {
-	for _, tx := range this.TransactionMap {
-		return tx.Commit()
+	ctx, cancel := context.WithTimeout(core.App().Context, time.Second*EXECUTE_TIMEOUT) //default timeout
+	defer cancel()
+	var execErr error;
+	var wg sync.WaitGroup
+	for _, tx := range this.transactionMap {
+		wg.Add(1)
+		go func(pTx *mysql.Tx, mctx context.Context){
+			defer wg.Done()
+			select {
+			case <-mctx.Done():
+				execErr = mctx.Err()
+				return
+			default:
+			}
+			//glog.Info("Commit: ")
+			err := pTx.Commit()
+			if err != nil {
+				cancel()
+				glog.Error(err)
+				execErr = err
+			}
+		}(tx,ctx)
 	}
-	return nil
+	return execErr
 }
 
 //
-func (this *Connector) AddTransactionTx(dsn string, tx *mysql.Tx) {
-	this.TransactionMap[dsn] = tx
+func (this *Connector) clearTransactionTx() {
+	this.transactionMap = make(map[string]*mysql.Tx)
+}
+//
+func (this *Connector) addTransactionTx(dsn string, tx *mysql.Tx) {
+	this.transactionMap[dsn] = tx
 }
 
 //
-func (this *Connector) GetTransactionTx(dsn string) *mysql.Tx {
-	if tx, ok := this.TransactionMap[dsn]; ok {
+func (this *Connector) getTransactionTx(dsn string) *mysql.Tx {
+	if tx, ok := this.transactionMap[dsn]; ok {
 		return tx
 	}
 	return nil
@@ -121,10 +166,12 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 	case *sqlparser.Rollback: //
 		this.InTransaction = false;
 		err := this.TxRollback()
+		this.clearTransactionTx()
 		return sqltypes.Result{RowsAffected: 1}, err
 	case *sqlparser.Commit: //
 		this.InTransaction = false;
 		err := this.TxCommit()
+		this.clearTransactionTx()
 		return sqltypes.Result{RowsAffected: 1}, err
 	case *sqlparser.Use:
 		this.UseDataBase(nStmt.DBName.String())
@@ -159,8 +206,13 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 }
 
 //
-func (this *Connector) Close() {
-
+func (this *Connector) Close() error{
+	if len(this.transactionMap) > 0{
+		err := this.TxRollback()
+		this.clearTransactionTx()
+		return err
+	}
+	return nil
 }
 
 //build shard table execute plan
@@ -294,7 +346,7 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 					dsn := nodedb.GetDSN()
 					//
 					this.mu.Lock()
-					tx := this.GetTransactionTx(dsn)
+					tx := this.getTransactionTx(dsn)
 					if tx == nil {
 						tx, execErr = nodedb.Begin()
 						if execErr != nil {
@@ -302,7 +354,7 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 							cancel()
 							return
 						}
-						this.AddTransactionTx(dsn, tx)
+						this.addTransactionTx(dsn, tx)
 					}
 					this.mu.Unlock()
 					//
