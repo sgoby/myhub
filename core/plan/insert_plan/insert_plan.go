@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/sgoby/myhub/core/rule/result"
 	"github.com/sgoby/myhub/utils/autoinc"
-	"github.com/golang/glog"
 )
 //
 type insertPlanBuilder struct{
@@ -26,7 +25,7 @@ func BuildInsertPlan(tb *schema.Table,stmt *sqlparser.Insert,manager *rule.RuleM
 	if valExpr == nil{
 		//is auto increment
 		autoKey := tb.GetAutoIncrementKey()
-		glog.Info(autoKey)
+		//glog.Info(autoKey)
 		if autoKey == tb.GetRuleKey(){
 			if inColumns == false{
 				mColIdent := sqlparser.NewColIdent(tb.GetRuleKey());
@@ -44,6 +43,7 @@ func BuildInsertPlan(tb *schema.Table,stmt *sqlparser.Insert,manager *rule.RuleM
 			return nil, fmt.Errorf("no ruleKey value")
 		}
 	}
+	//glog.Info(sqlparser.String(stmt))
 	rResults,err := manager.GetShardRule(tb.GetRuleName(),valExpr)
 	if err != nil{
 		return nil,err
