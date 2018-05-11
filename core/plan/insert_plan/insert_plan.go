@@ -22,13 +22,24 @@ func BuildInsertPlan(tb *schema.Table,stmt *sqlparser.Insert,manager *rule.RuleM
 	builder := &insertPlanBuilder{
 		stmt: stmt,
 	}
-	valExpr := builder.getRuleKeyValue(tb.GetRuleKey())
+	valExpr,inColumns := builder.getRuleKeyValue(tb.GetRuleKey())
 	if valExpr == nil{
 		//is auto increment
 		autoKey := tb.GetAutoIncrementKey()
 		glog.Info(autoKey)
 		if autoKey == tb.GetRuleKey(){
+			if inColumns == false{
+				mColIdent := sqlparser.NewColIdent(tb.GetRuleKey());
+				stmt.Columns = append(stmt.Columns,mColIdent)
+			}
+			//
 			valExpr = builder.getAutoIncrementBykey(dbName,tb.Name(),tb.GetRuleKey())
+			values,ok := stmt.Rows.(sqlparser.Values)
+			if !ok{
+				return nil, fmt.Errorf("create auto value failed")
+			}
+			//目前只支持单行插入
+			values[0]  = append(values[0],valExpr)
 		}else {
 			return nil, fmt.Errorf("no ruleKey value")
 		}
@@ -63,7 +74,7 @@ func (this *insertPlanBuilder)createInsertStmt(rResults []result.RuleResult,stmt
 	return plans,nil
 }
 //
-func (this *insertPlanBuilder) getRuleKeyValue(ruleKey string) (expr sqlparser.Expr){
+func (this *insertPlanBuilder) getRuleKeyValue(ruleKey string) (expr sqlparser.Expr,inColumns bool){
 	keyIndex := -1
 	for index,colemn := range this.stmt.Columns{
 		if colemn.String() == ruleKey{
@@ -78,17 +89,17 @@ func (this *insertPlanBuilder) getRuleKeyValue(ruleKey string) (expr sqlparser.E
 	//
 	values,ok := this.stmt.Rows.(sqlparser.Values)
 	if !ok{
-		return
+		return nil,true
 	}
 	if len(values) < 1{
-		return
+		return nil,true
 	}
 	//
 	if len(values[0]) < keyIndex{
-		return
+		return nil,true
 	}
 	valExpr := values[0][keyIndex]
-	return valExpr
+	return valExpr,true
 }
 //
 func  (this *insertPlanBuilder) tableNameAddSuffix(stmt sqlparser.Insert,tbSuffix string) sqlparser.Insert{

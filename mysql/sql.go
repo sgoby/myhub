@@ -666,6 +666,9 @@ func (this *Client) BeginTx(ctx context.Context, opts *TxOptions) (*Tx, error) {
 	return tx, err
 }
 
+func (this *Client) BeginContext(ctx context.Context) (*Tx, error) {
+	return this.BeginTx(ctx, nil)
+}
 // Begin starts a transaction. The default isolation level is dependent on
 // the driver.
 func (this *Client) Begin() (*Tx, error) {

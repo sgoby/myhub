@@ -32,6 +32,10 @@ type Connector struct {
 	InTransaction  bool                 // turn on the transaction else
 	transactionMap map[string]*mysql.Tx //[dsn]
 	mu             *sync.Mutex
+	// cancel is called after done
+	cancel func()
+	// ctx lives for the life of the Connector.
+	ctx context.Context
 }
 
 //just used for sys auto create table
@@ -41,11 +45,14 @@ func NewDefaultConnector() *Connector {
 
 //
 func NewConnector(c *mysql.Conn) *Connector {
-	return &Connector{
+	conn := &Connector{
 		MyConn: c,
 		mu:     new(sync.Mutex),
 		transactionMap:make(map[string]*mysql.Tx),
+
 	}
+	conn.ctx, conn.cancel = context.WithCancel(core.App().Context)
+	return conn;
 }
 
 //
@@ -75,7 +82,7 @@ func (this *Connector) AutoCrateTables() error {
 
 //rollback transaction
 func (this *Connector) TxRollback() error {
-	ctx, cancel := context.WithTimeout(core.App().Context, time.Second*EXECUTE_TIMEOUT) //default timeout
+	ctx, cancel := context.WithTimeout(this.ctx, time.Second*EXECUTE_TIMEOUT) //default timeout
 	defer cancel()
 	var execErr error;
 	var wg sync.WaitGroup
@@ -101,7 +108,7 @@ func (this *Connector) TxRollback() error {
 	return execErr
 }
 func (this *Connector) TxCommit() error {
-	ctx, cancel := context.WithTimeout(core.App().Context, time.Second*EXECUTE_TIMEOUT) //default timeout
+	ctx, cancel := context.WithTimeout(this.ctx, time.Second*EXECUTE_TIMEOUT) //default timeout
 	defer cancel()
 	var execErr error;
 	var wg sync.WaitGroup
@@ -309,7 +316,7 @@ func (this *Connector) execAutoCreatePlans(plans []plan.Plan) (sqltypes.Result, 
 
 //
 func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []plan.Plan, rwType string) (sqltypes.Result, error) {
-	ctx, cancel := context.WithTimeout(core.App().Context, time.Second*EXECUTE_TIMEOUT) //default timeout
+	ctx, cancel := context.WithTimeout(this.ctx, time.Second*EXECUTE_TIMEOUT) //default timeout
 	defer cancel()
 	//
 	var rsArr []sqltypes.Result
@@ -348,7 +355,7 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 					this.mu.Lock()
 					tx := this.getTransactionTx(dsn)
 					if tx == nil {
-						tx, execErr = nodedb.Begin()
+						tx, execErr = nodedb.BeginContext(mctx)
 						if execErr != nil {
 							this.mu.Unlock()
 							cancel()
