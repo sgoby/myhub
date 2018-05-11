@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"fmt"
+	"path/filepath"
 )
 
 type Config struct {
@@ -88,16 +89,17 @@ type Rule struct {
 	Shards   []Shard `xml:"shard"`
 	Format   string  `xml:"format,attr"`
 }
-
+// record current config file dir
+var confDir string
 //
-func ParseConfig(filePath string) (conf *Config, err error) {
-	fPath,_,err := optFilePath(filePath)
+func ParseConfig(cnfPath string) (conf *Config, err error) {
+	cnfPath,_,err = optFilePath(cnfPath)
 	if err != nil{
 		return nil,err
 	}
-	filePath = fPath
+	confDir = filepath.Dir(cnfPath)
 	//
-	data, err := ioutil.ReadFile(filePath)
+	data, err := ioutil.ReadFile(cnfPath)
 	if err != nil {
 		return nil, err
 	}
@@ -155,9 +157,12 @@ func optFilePath(filePath string) (newFilePath string,isFilePath bool, err error
 	}
 	//current directory
 	if localreg.MatchString(filePath) {
-		localDir, err := os.Getwd()
-		if err != nil {
-			return filePath,true, err
+		localDir := confDir
+		if(len(localDir) <= 0){
+			localDir, err = os.Getwd()
+			if err != nil {
+				return filePath,true, err
+			}
 		}
 		strings.Replace(filePath, "./", "", -1)
 		filePath = localDir + "/" + filePath;
