@@ -10,7 +10,7 @@
     <webUser>admin</webUser>
     <webPassword>admin</webPassword>
 
-    <logPath>run.log</logPath>
+    <logPath>logs</logPath>
     <!--  log level[debug|info|warn|error],default error  -->
     <logLevel>debug</logLevel>
     <!--  if set log_sql(on|off) off,the sql log will not output  -->

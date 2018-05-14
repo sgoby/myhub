@@ -11,33 +11,33 @@ import (
 )
 
 
+var appConf *config.Config
 
 func init() {
+	var err error;
+	configFilePath := flag.String("cnf", "conf/myhub.xml", "setting config file")
+	appConf,err = config.ParseConfig(*configFilePath)
+	if err != nil{
+		glog.Exit(err)
+		return
+	}
+	//appConf = mConfig;
 	//flag.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
 	//glog's setting
 	flag.Set("alsologtostderr", "true")
-	flag.Set("log_dir", "logs")
+	flag.Set("log_dir", appConf.LogPath)
 	flag.Parse()
 }
 
 func main(){
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	//
-	configFilePath := flag.String("cnf", "conf/myhub.xml", "setting config file")
-	//
-	mConfig,err := config.ParseConfig(*configFilePath)
-	if err != nil{
-		glog.Exit(err)
-		return
-	}
-	//
-	if err = core.App().LoadConfig(*mConfig);err != nil{
+	if err := core.App().LoadConfig(*appConf);err != nil{
 		glog.Exit(err)
 		return
 	}
 	//
 	c := client.NewDefaultConnector()
-	if err = c.AutoCrateTables();err != nil{
+	if err := c.AutoCrateTables();err != nil{
 		glog.Exit(err)
 		return
 	}
