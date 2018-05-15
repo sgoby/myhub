@@ -91,7 +91,7 @@ func (this *Shard) parseRangeDate(limit,format string) (error) {
 		//
 		sr := &shardRange{
 			start: rangeBeginTime.Unix(),
-			end:  rangeEndTime.Unix(),
+			end:  rangeEndTime.Unix() - 1, //23:59:59
 		}
 		//
 		rangeMap[rangeBeginTime.Format(dateFormat)] = sr

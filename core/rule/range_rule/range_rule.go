@@ -265,15 +265,60 @@ func (this *RuleRange)strconvInt64(expr sqlparser.Expr) (int64,error){
 		return startNum, nil
 	}
 	if this.rangeType == RANGE_DATE {
-		dateStr := buf.String()
-		dateStr = strings.Replace(dateStr,"'","",-1)
-		dateStr = strings.Replace(dateStr,"\"","",-1)
-		//
-		valTime,err := time.Parse("2006-01-02 15:04:05", dateStr)
+		var err error
+		dateTimeStr := buf.String()
+		dateTimeStr = strings.TrimSpace(dateTimeStr)
+		dateTimeStr = strings.Trim(dateTimeStr,"'")
+		dateTimeStr = strings.Trim(dateTimeStr,"\"")
+		dateTimeStr,err = optimizationDatetime(dateTimeStr);
+		if err != nil {
+			return 0, err
+		}
+		deferLayout := "2006-01-02 15:04:05"
+		if len(dateTimeStr) > len(deferLayout){
+			return 0, fmt.Errorf("Invalid date of:",dateTimeStr)
+		}
+		valTime,err := time.Parse(deferLayout[0:len(dateTimeStr)], dateTimeStr)
 		if err != nil {
 			return 0, err
 		}
 		return valTime.Unix(),nil;
 	}
 	return 0, fmt.Errorf("Invalid range type of:",this.rangeType);
+}
+//
+func optimizationDatetime(dateTimeStr string) (string,error){
+	dtArr := strings.Split(dateTimeStr," ")
+	dateStr := dtArr[0]
+	var timeStr string;
+	if len(dtArr) > 1{
+		timeStr = dtArr[1]
+	}
+	dateArr := strings.Split(dateStr,"-")
+	var timeArr []string
+	if len(timeStr) > 0{
+		timeArr = strings.Split(timeStr,":")
+	}
+	//
+	if len(dateArr[0]) < 4{
+		return "",fmt.Errorf("Invalid date of:",dateTimeStr);
+	}
+	if len(dateArr) > 1 && len(dateArr[1]) < 2{
+		dateArr[1] = "0"+dateArr[1]
+	}
+	if len(dateArr) > 2 && len(dateArr[2]) < 2{
+		dateArr[2] = "0"+dateArr[2]
+	}
+	dateStr = strings.Join(dateArr,"-")
+	//
+	if len(timeArr) > 0 {
+		for i, _ := range timeArr {
+			if len(timeArr[i]) < 2 {
+				timeArr[i] = "0" + timeArr[i]
+			}
+		}
+		timeStr = strings.Join(timeArr,":")
+		return dateStr + " "+timeStr,nil;
+	}
+	return dateStr,nil
 }
