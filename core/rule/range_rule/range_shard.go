@@ -81,7 +81,7 @@ func (this *Shard) getTbSuffixIn(val int64)(result.RuleResult){
 //==================================================================
 //
 func (this *shardRange) inRange(val int64) bool {
-	if val < this.end && val >= this.start {
+	if val <= this.end && val >= this.start {
 		return true
 	}
 	return false
@@ -163,7 +163,7 @@ func (this *Shard) parseRangeInt(limit int64, format string,beginVal int64) (err
 		e = (index - startNum + 1) * limit
 		sr := &shardRange{
 			start: s + beginVal,
-			end:   e + beginVal,
+			end:   e + beginVal -1, //999
 		}
 		if len(format) <= 0 {
 			format = "%d"
