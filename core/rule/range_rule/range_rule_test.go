@@ -50,7 +50,7 @@ func Test_schema(t *testing.T){
 func Test_dateShard(t *testing.T){
 	mShard := new(Shard)
 	mShard.config.RangeExpr = "201801-201901"
-	err := mShard.parseRangeDate("1m","YM")
+	err := mShard.parseRangeDate("","YM")
 	if err != nil{
 		fmt.Println("Error:",err)
 		return
