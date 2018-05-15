@@ -48,7 +48,7 @@
         <dataBase name="db1" >
             <!--  rule: hash | range | date_month | date_day  -->
             <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="dealer_info.sql"/>
-            <table name="lb_user" ruleKey="uid" rule="rang_2" createSql=""/>
+            <table name="cash_record" ruleKey="add_time" rule="rang_2" createSql="cash_record.sql"/>
 
         </dataBase>
         <dataBase name="test_1" proxyDataBase="test"/>
@@ -64,9 +64,9 @@
             <shard nodeDataBase="db3" rowLimit="100000000" between="21-30"/>
             -->
         </rule>
-        <rule name="rang_2" ruleType="range">
+        <rule name="rang_2" ruleType="date" format="ym">
             <!-- tableRowLimit : 2d,m,y,h-->
-            <shard nodeDataBase="lb_livegame" rowLimit="3000000" between="1-5" />
+            <shard nodeDataBase="test" rowLimit="1m" between="201801-201901" />
         </rule>
     </rules>
 </myhub>  

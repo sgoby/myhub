@@ -36,6 +36,11 @@ func NewRuleManager(cnfs []config.Rule) (*RuleManager, error) {
 			if err != nil {
 				return nil, err
 			}
+		} else if cnf.RuleType == RULE_DATE {
+			rule, err = range_rule.NewRuleDateRange(cnf)
+			if err != nil {
+				return nil, err
+			}
 		} else if cnf.RuleType == RULE_HASH {
 			rule, err = hash_rule.NewRuleHash(cnf)
 			if err != nil {

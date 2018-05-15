@@ -6,17 +6,22 @@ import (
 	"strconv"
 	"github.com/sgoby/myhub/core/rule/result"
 	"github.com/golang/glog"
+	"fmt"
+	"time"
+	"strings"
 )
 
 type RuleRange struct {
 	shards    []*Shard
+	rangeType string
 }
 //
 func NewRuleRange(rcnf config.Rule) (*RuleRange,error){
 	rHash := new(RuleRange)
+	rHash.rangeType = RANGE_NUMERIC;
 	beginVal := int64(0)
 	for _,shcnf := range rcnf.Shards{
-		mShard, err := NewShard(shcnf, RANGE_NUMERIC,beginVal,rcnf.Format)
+		mShard, err := NewShard(shcnf, rHash.rangeType,beginVal,rcnf.Format)
 		if err != nil {
 			return nil, err
 		}
@@ -252,9 +257,23 @@ func (this *RuleRange) GetAllShardRule()(rResults []result.RuleResult, err error
 func (this *RuleRange)strconvInt64(expr sqlparser.Expr) (int64,error){
 	buf := sqlparser.NewTrackedBuffer(nil)
 	expr.Format(buf)
-	startNum, err := strconv.ParseInt(buf.String(), 10, 64)
-	if err != nil {
-		return 0,err
+	if this.rangeType == RANGE_NUMERIC {
+		startNum, err := strconv.ParseInt(buf.String(), 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		return startNum, nil
 	}
-	return startNum,nil
+	if this.rangeType == RANGE_DATE {
+		dateStr := buf.String()
+		dateStr = strings.Replace(dateStr,"'","",-1)
+		dateStr = strings.Replace(dateStr,"\"","",-1)
+		//
+		valTime,err := time.Parse("2006-01-02 15:04:05", dateStr)
+		if err != nil {
+			return 0, err
+		}
+		return valTime.Unix(),nil;
+	}
+	return 0, fmt.Errorf("Invalid range type of:",this.rangeType);
 }

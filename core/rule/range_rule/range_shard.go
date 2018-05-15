@@ -106,6 +106,11 @@ func NewShard(cnf config.Shard, rangeType string,beginVal int64,format string) (
 			return nil,err
 		}
 
+	}else if rangeType == RANGE_DATE {
+		err := sh.parseRangeDate(limitStr, format)
+		if err != nil{
+			return nil,err
+		}
 	}
 	return sh, nil
 }
