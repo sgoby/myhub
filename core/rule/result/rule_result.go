@@ -8,6 +8,12 @@ type RuleResult struct {
 
 //
 func (this *RuleResult) AddTbSuffix(tbSuffix string) {
+	//过滤重复的
+	for _,ts := range this.TbSuffixs{
+		if ts == tbSuffix{
+			return;
+		}
+	}
 	this.TbSuffixs = append(this.TbSuffixs, tbSuffix)
 }
 func (this *RuleResult) GetNodeDbName() string {
@@ -33,6 +39,24 @@ func (this *RuleResult) Equal(r *RuleResult) bool {
 	}
 	return true
 }
+//去掉重复的TbSuffixs
+func (this *RuleResult) RemoveRepTbSuffixs(){
+	tempTbSuffixs := []string{}  // 存放结果
+	for _,ts := range this.TbSuffixs{
+		isFind := false;
+		for  _,tempTs := range tempTbSuffixs{
+			if ts == tempTs{
+				isFind = true;
+				break;
+			}
+		}
+		if !isFind{
+			tempTbSuffixs = append(tempTbSuffixs,ts)
+		}
+	}
+	this.TbSuffixs = tempTbSuffixs;
+}
+//
 func (this *RuleResult) Intersection(r *RuleResult) (n *RuleResult, ok bool) {
 	if this.NodeDB != r.NodeDB {
 		return nil, false

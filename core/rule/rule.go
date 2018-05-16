@@ -57,5 +57,27 @@ func (this *RuleManager) GetShardRule(ruleName string,expr sqlparser.Expr) (rRes
 	if !ok{
 		return rResults,errors.New(fmt.Sprintf("Not found rule: %s",ruleName))
 	}
-	return rule.GetShardRule(expr)
+	rResults,err = rule.GetShardRule(expr)
+	if err != nil{
+		return;
+	}
+	//rule.GetShardRule(expr)
+	return  this.removeRepRuleResult(rResults),err
+}
+//去掉重复的TbSuffixs
+func (this *RuleManager) removeRepRuleResult(rResults []result.RuleResult)([]result.RuleResult){
+	tempTbSuffixs := []result.RuleResult{}  // 存放结果
+	for _,ts := range rResults{
+		isFind := false;
+		for  _,tempTs := range tempTbSuffixs{
+			if ts.Equal(&tempTs){
+				isFind = true;
+				break;
+			}
+		}
+		if !isFind{
+			tempTbSuffixs = append(tempTbSuffixs,ts)
+		}
+	}
+	return tempTbSuffixs
 }
