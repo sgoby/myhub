@@ -21,6 +21,7 @@ import (
 	"github.com/sgoby/myhub/core/plan/create_plan"
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
 	"github.com/sgoby/myhub/tb"
+	"strings"
 )
 
 const (
@@ -211,7 +212,25 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 		}
 	case *sqlparser.OtherRead: //explain
 		//otherRead = nStmt
+		glog.Info("unKnow OtherRead, not support:", nStmt)
+		rs,err,ok := this.explain(query);
+		if err != nil{
+			return sqltypes.Result{}, err
+		}
+		if ok{
+			return rs,err
+		}
+		//
+		rs,err,ok = this.describe(query);
+		if err != nil{
+			return sqltypes.Result{}, err
+		}
+		if ok{
+			return rs,err
+		}
 	case *sqlparser.Update,*sqlparser.Insert,*sqlparser.Delete:
+	case *sqlparser.DDL:
+		glog.Info("unKnow DDL, not support:", nStmt)
 	default:
 		glog.Info("unKnow, not support:", nStmt)
 		return sqltypes.Result{}, nil
@@ -235,7 +254,6 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 	}
 	return this.execSchemaPlans(stmt, plans, rwType)
 }
-
 //
 func (this *Connector) Close() error{
 	if len(this.transactionMap) > 0{
@@ -245,6 +263,107 @@ func (this *Connector) Close() error{
 	}
 	return nil
 }
+func (this *Connector) describe(query string)(rs sqltypes.Result,err error,ok bool){
+	query = strings.Replace(query,"`","",-1)
+	query = strings.ToLower(query)
+	tokens := strings.Split(query," ")
+	if tokens[0] != "describe"{
+		return;
+	}
+	if len(tokens) < 2{
+		return rs,fmt.Errorf("Error describe"),true
+	}
+	//
+	arr := strings.Split(tokens[1],".");
+	dbName := this.GetDB()
+	sTbName := arr[0]
+	if len(arr) > 1{
+		if arr[0] != dbName{//Denies Authority
+			return sqltypes.Result{}, fmt.Errorf("Denies Authority"),true;
+		}
+		sTbName = arr[1]
+	}
+	//
+	db, err := core.App().GetSchema().GetDataBase(dbName)
+	if err != nil {
+		return sqltypes.Result{}, fmt.Errorf("No database use"),true;
+	}
+	tb := db.GetTable(sTbName)
+	if tb == nil{
+		if len(db.GetProxyDbName()) > 0 {
+			proxyRs,err := this.execProxyPlan(db, query, node.HOST_WRITE)
+			return proxyRs,err,true;
+		}
+		return sqltypes.Result{}, fmt.Errorf("Table '%s' doesn't exist",sTbName),true;
+	}
+	createStmt := tb.GetCreateStmt();
+	if createStmt == nil{
+		return sqltypes.Result{}, fmt.Errorf("No create sql on config :'%s'",sTbName),true;
+	}
+	resultRows := mysql.NewRows()
+	resultRows.AddField("Field",querypb.Type_VARCHAR)
+	resultRows.AddField("Type",querypb.Type_VARCHAR)
+	resultRows.AddField("Null",querypb.Type_VARCHAR)
+	resultRows.AddField("Key",querypb.Type_VARCHAR)
+	resultRows.AddField("Default",querypb.Type_VARCHAR)
+	resultRows.AddField("Extra",querypb.Type_VARCHAR)
+	//
+	for _,column := range createStmt.TableSpec.Columns{
+		Null := "YES"
+		if column.Type.NotNull{
+			Null = "NO"
+		}
+		valDefault := ""
+		if column.Type.Default != nil {
+			bufDefault := sqlparser.NewTrackedBuffer(nil)
+			column.Type.Default.Format(bufDefault)
+			valDefault = bufDefault.String()
+		}
+		Extra := ""
+		if column.Type.Autoincrement{
+			Extra = "auto_increment"
+		}
+		Key := fmt.Sprintf("%d",column.Type.KeyOpt)
+		if column.Type.KeyOpt == 1 {
+			Key = "PRI"
+		}
+		//
+		mType := column.Type.Type
+		//lenBuf := sqlparser.NewTrackedBuffer(nil)
+		//column.Type.Scale.Format(lenBuf)
+		//mType += fmt.Sprintf("(%s)",lenBuf.String())
+		resultRows.AddRow(column.Name.String(),mType,Null,
+			Key,valDefault,Extra)
+	}
+	//
+	rs = *resultRows.ToResult()
+	return rs,nil,true;
+}
+//
+func (this *Connector) explain(query string)(rs sqltypes.Result,err error,ok bool){
+	query = strings.Replace(query,"`","",-1)
+	query = strings.ToLower(query)
+	tokens := strings.Split(query," ")
+	if tokens[0] != "explain"{
+		return;
+	}
+	resultRows := mysql.NewRows()
+	resultRows.AddField("id",querypb.Type_INT64)
+	resultRows.AddField("select_type",querypb.Type_VARCHAR)
+	resultRows.AddField("table",querypb.Type_VARCHAR)
+	resultRows.AddField("partitions",querypb.Type_VARCHAR)
+	resultRows.AddField("type",querypb.Type_VARCHAR)
+	resultRows.AddField("possible_keys",querypb.Type_VARCHAR)
+	resultRows.AddField("key",querypb.Type_VARCHAR)
+	resultRows.AddField("key_len",querypb.Type_VARCHAR)
+	resultRows.AddField("ref",querypb.Type_VARCHAR)
+	resultRows.AddField("rows",querypb.Type_INT64)
+	resultRows.AddField("filtered",querypb.Type_FLOAT32)
+	resultRows.AddField("Extra",querypb.Type_VARCHAR)
+	rs = *resultRows.ToResult()
+	return rs,nil,true;
+}
+//
 func (this *Connector) showKeys(pStmt *sqlparser.Show,query string)(rs sqltypes.Result,err error,ok bool){
 	mShow := tb.ParseShowStmt(query)
 	if !mShow.IsShowKeys(){
