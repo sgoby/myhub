@@ -19,7 +19,7 @@ func init() {
 func Test_SelectPlan(t *testing.T) {
 	defer glog.Flush()
 	fmt.Println(os.Getwd())
-	sql := "select * from user b where  id = 52 and   up_time between 52 and  500 " //name = 'dddd' and sex = 'man'
+	sql := "select * from g.user b where  id = 52 and   up_time between 52 and  500 " //name = 'dddd' and sex = 'man'
 	stmt, err := sqlparser.Parse(sql)
 	if err != nil {
 		fmt.Println(err)
@@ -27,29 +27,32 @@ func Test_SelectPlan(t *testing.T) {
 	}
 
 	if pStmt, ok := stmt.(*sqlparser.Select); ok {
-		/*
-		builder := NewselectPlanBuilder(*pStmt)
-		stmt1 := builder.tableNameAddSuffix(*pStmt, "0001")
+
+		//builder,_ := NewselectPlanBuilder(*pStmt)
+		//stmt1 := builder.tableNameAddSuffix(*pStmt, "0001")
+		stmt1 :=tableNameAddSuffix(*pStmt,"t","001")
 		sql := sqlparser.String(&stmt1)
 		fmt.Println(sql)
-		stmt2 := builder.tableNameAddSuffix(*pStmt, "0002")
-		sql2 := sqlparser.String(&stmt2)
-		fmt.Println(sql, sql2)
-		*/
+		//stmt2 := builder.tableNameAddSuffix(*pStmt, "0002")
+		//sql2 := sqlparser.String(&stmt2)
 
-		builder := NewselectPlanBuilder(*pStmt)
+		//fmt.Println(sql, sql2)
+
+		/*
+		builder,_ := NewselectPlanBuilder(*pStmt)
 		expr, pok := builder.getWhereExprByKey("up_time")
 		if pok {
 			fmt.Println(expr)
 		} else {
 			fmt.Println("Not found", pok)
 		}
+		*/
 
 	}
 }
 
 //
-func tableNameAddSuffix(stmt sqlparser.Select, tbSuffix string) sqlparser.Select {
+func tableNameAddSuffix(stmt sqlparser.Select,dbNode, tbSuffix string) sqlparser.Select {
 	nStmt := sqlparser.Select{}
 	nStmt = stmt
 	switch expr := stmt.From[0].(type) {
@@ -60,8 +63,12 @@ func tableNameAddSuffix(stmt sqlparser.Select, tbSuffix string) sqlparser.Select
 			Hints:      expr.Hints,
 		}
 		if tbn, ok := expr.Expr.(sqlparser.TableName); ok {
-			oldName := tbn.Name.String()
 			newTb := tbn.ToViewName()
+			if !tbn.Qualifier.IsEmpty(){
+				newTb.Qualifier = sqlparser.NewTableIdent(dbNode)
+			}
+			fmt.Println(tbn.Qualifier.String())
+			oldName := tbn.Name.String()
 			newTb.Name = sqlparser.NewTableIdent(oldName + "_" + tbSuffix)
 			nAli.Expr = newTb
 			fmt.Println(nStmt.From[0])
