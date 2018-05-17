@@ -75,7 +75,13 @@ func (this *Database) Foreach(f func(string, *Table) error, errBreak bool) (err 
 	}
 	return
 }
-
+//
+func (this *Database) GetTableNames() (tbNames []string) {
+	for tbName, _ := range this.tableMap {
+		tbNames = append(tbNames,tbName)
+	}
+	return tbNames
+}
 //
 func (this *Database) GetTable(tbName string) *Table {
 	if tb, ok := this.tableMap[tbName]; ok {

@@ -19,6 +19,8 @@ import (
 	"github.com/sgoby/myhub/core/plan/update_plan"
 	"github.com/golang/glog"
 	"github.com/sgoby/myhub/core/plan/create_plan"
+	querypb "github.com/sgoby/sqlparser/vt/proto/query"
+	"github.com/sgoby/myhub/tb"
 )
 
 const (
@@ -184,7 +186,29 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 		this.UseDataBase(nStmt.DBName.String())
 		return sqltypes.Result{RowsAffected: 1}, nil
 	case *sqlparser.Show:
-		//showStmt = nStmt
+		rs,err,ok := this.showTables(nStmt,query);
+		if err != nil{
+			return sqltypes.Result{}, err
+		}
+		if ok{
+			return rs,err
+		}
+		//
+		rs,err,ok = this.showFields(nStmt,query);
+		if err != nil{
+			return sqltypes.Result{}, err
+		}
+		if ok{
+			return rs,err
+		}
+		//
+		rs,err,ok = this.showKeys(nStmt,query);
+		if err != nil{
+			return sqltypes.Result{}, err
+		}
+		if ok{
+			return rs,err
+		}
 	case *sqlparser.OtherRead: //explain
 		//otherRead = nStmt
 	case *sqlparser.Update,*sqlparser.Insert,*sqlparser.Delete:
@@ -221,7 +245,188 @@ func (this *Connector) Close() error{
 	}
 	return nil
 }
+func (this *Connector) showKeys(pStmt *sqlparser.Show,query string)(rs sqltypes.Result,err error,ok bool){
+	mShow := tb.ParseShowStmt(query)
+	if !mShow.IsShowKeys(){
+		return rs,err,false;
+	}
+	//
+	dbName := this.GetDB()
+	sDbName := mShow.GetFromDataBase()
+	sTbName := mShow.GetFromTable()
+	if sDbName == sTbName{
+		sDbName = dbName
+	}
+	//
+	if sDbName != dbName{//Denies Authority
+		return sqltypes.Result{}, fmt.Errorf("Denies Authority"),true;
+	}
+	//
+	db, err := core.App().GetSchema().GetDataBase(dbName)
+	if err != nil {
+		return sqltypes.Result{}, fmt.Errorf("No database use"),true;
+	}
+	tb := db.GetTable(sTbName)
+	if tb == nil{
+		if len(db.GetProxyDbName()) > 0 {
+			proxyRs,err := this.execProxyPlan(db, query, node.HOST_WRITE)
+			return proxyRs,err,true;
+		}
+		return sqltypes.Result{}, fmt.Errorf("Table '%s' doesn't exist",sTbName),true;
+	}
+	createStmt := tb.GetCreateStmt();
+	if createStmt == nil{
+		return sqltypes.Result{}, fmt.Errorf("No create sql on config :'%s'",sTbName),true;
+	}
+	resultRows := mysql.NewRows()
+	resultRows.AddField("Table",querypb.Type_VARCHAR)
+	resultRows.AddField("Non_unique",querypb.Type_VARCHAR)
+	resultRows.AddField("Key_name",querypb.Type_VARCHAR)
+	resultRows.AddField("Seq_in_index",querypb.Type_VARCHAR)
+	resultRows.AddField("Column_name",querypb.Type_VARCHAR)
+	resultRows.AddField("Collation",querypb.Type_VARCHAR)
+	resultRows.AddField("Cardinality",querypb.Type_VARCHAR)
+	resultRows.AddField("Sub_part",querypb.Type_VARCHAR)
+	resultRows.AddField("Packed",querypb.Type_VARCHAR)
+	resultRows.AddField("Null",querypb.Type_VARCHAR)
+	resultRows.AddField("Index_type",querypb.Type_VARCHAR)
+	resultRows.AddField("Comment",querypb.Type_VARCHAR)
+	resultRows.AddField("Index_comment",querypb.Type_VARCHAR)
+	for _,index := range createStmt.TableSpec.Indexes{
+		glog.Info(index)
+	}
+	rs = *resultRows.ToResult()
+	return rs,nil,true;
+}
+//
+func (this *Connector) showFields(pStmt *sqlparser.Show,query string)(rs sqltypes.Result,err error,ok bool){
+	mShow := tb.ParseShowStmt(query)
+	if !mShow.IsShowFields(){
+		return rs,err,false;
+	}
+	//
+	dbName := this.GetDB()
+	sDbName := mShow.GetFromDataBase()
+	sTbName := mShow.GetFromTable()
+	if sDbName == sTbName{
+		sDbName = dbName
+	}
+	//
+	if sDbName != dbName{//Denies Authority
+		return sqltypes.Result{}, fmt.Errorf("Denies Authority"),true;
+	}
+	//
+	db, err := core.App().GetSchema().GetDataBase(dbName)
+	if err != nil {
+		return sqltypes.Result{}, fmt.Errorf("No database use"),true;
+	}
+	tb := db.GetTable(sTbName)
+	if tb == nil{
+		if len(db.GetProxyDbName()) > 0 {
+			proxyRs,err := this.execProxyPlan(db, query, node.HOST_WRITE)
+			return proxyRs,err,true;
+		}
+		return sqltypes.Result{}, fmt.Errorf("Table '%s' doesn't exist",sTbName),true;
+	}
+	createStmt := tb.GetCreateStmt();
+	if createStmt == nil{
+		return sqltypes.Result{}, fmt.Errorf("No create sql on config :'%s'",sTbName),true;
+	}
+	resultRows := mysql.NewRows()
+	resultRows.AddField("Field",querypb.Type_VARCHAR)
+	resultRows.AddField("Type",querypb.Type_VARCHAR)
+	resultRows.AddField("Collation",querypb.Type_VARCHAR)
+	resultRows.AddField("Null",querypb.Type_VARCHAR)
+	resultRows.AddField("Key",querypb.Type_VARCHAR)
+	resultRows.AddField("Default",querypb.Type_VARCHAR)
+	resultRows.AddField("Extra",querypb.Type_VARCHAR)
+	resultRows.AddField("Privileges",querypb.Type_VARCHAR)
+	resultRows.AddField("Comment",querypb.Type_VARCHAR)
+	//
 
+	for _,column := range createStmt.TableSpec.Columns{
+		Null := "YES"
+		if column.Type.NotNull{
+			Null = "NO"
+		}
+		valDefault := ""
+		if column.Type.Default != nil {
+			bufDefault := sqlparser.NewTrackedBuffer(nil)
+			column.Type.Default.Format(bufDefault)
+			valDefault = bufDefault.String()
+		}
+		Extra := ""
+		if column.Type.Autoincrement{
+			Extra = "auto_increment"
+		}
+		valComment := ""
+		if column.Type.Comment != nil {
+			bufComment := sqlparser.NewTrackedBuffer(nil)
+			column.Type.Comment.Format(bufComment)
+			valComment = bufComment.String()
+		}
+		Key := fmt.Sprintf("%d",column.Type.KeyOpt)
+		if column.Type.KeyOpt == 1 {
+			Key = "PRI"
+		}
+		//
+		resultRows.AddRow(column.Name.String(),column.Type.Type,column.Type.Collate,Null,
+			Key,valDefault,Extra,"select,insert,update,references",valComment)
+	}
+	//
+	rs = *resultRows.ToResult()
+	return rs,nil,true;
+}
+//列出当前数据库据有表
+func (this *Connector) showTables(pStmt *sqlparser.Show,query string)(rs sqltypes.Result,err error,ok bool){
+	mShow := tb.ParseShowStmt(query)
+	if !mShow.IsShowTables(){
+		return rs,err,false;
+	}
+	dbName := this.GetDB()
+	if len(dbName) <= 0{
+		return sqltypes.Result{}, fmt.Errorf("No database selected"),false;
+	}
+	if len(mShow.From) < 1{
+		mShow.From = dbName;
+	}
+	//
+	resultRows := mysql.NewRows()
+	resultRows.AddField("Tables_in_"+mShow.From, querypb.Type_VARCHAR)
+	if mShow.Full{
+		resultRows.AddField("Tables_type", querypb.Type_VARCHAR)
+	}
+	//
+	if mShow.From != dbName{//Denies Authority
+		return sqltypes.Result{}, fmt.Errorf("Denies Authority"),true;
+	}
+	db, err := core.App().GetSchema().GetDataBase(dbName)
+	if err != nil {
+		return sqltypes.Result{}, fmt.Errorf("No database use"),true;
+	}
+	//如果有代理数据库，先获取代的表格
+	var proxyRs sqltypes.Result
+	if len(db.GetProxyDbName()) > 0 {
+		proxyRs,err = this.execProxyPlan(db, query, node.HOST_WRITE)
+	}
+	//Tables_in_dbName,Tables_type
+	tbNames := db.GetTableNames()
+	//rows := mysql.NewRows()
+	for _,name := range tbNames{
+		if mShow.Full {
+			resultRows.AddRow(name, "BASE TABLE")
+		}else{
+			resultRows.AddRow(name)
+		}
+	}
+	pRs := resultRows.ToResult()
+	//
+	if len(proxyRs.Rows) > 0{
+		proxyRs.Rows = append(proxyRs.Rows,pRs.Rows...)
+		return proxyRs,nil,true;
+	}
+	return *pRs,nil,true;
+}
 //build shard table execute plan
 func (this *Connector) buildSchemaPlan(db *schema.Database, pStmt sqlparser.Statement) (plans []plan.Plan, err error) {
 	if pStmt == nil {
