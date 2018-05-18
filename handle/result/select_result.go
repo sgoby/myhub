@@ -163,5 +163,5 @@ func (this *SelectResult) getFieldIndex(name string) int {
 			return index
 		}
 	}
-	return 0
+	return -1
 }

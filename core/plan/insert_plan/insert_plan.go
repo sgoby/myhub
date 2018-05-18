@@ -65,7 +65,7 @@ func (this *insertPlanBuilder)createInsertStmt(rResults []result.RuleResult,stmt
 			NodeDBName:rule.NodeDB,
 		}
 		for _,tbSuffix := range rule.TbSuffixs{
-			nStmt := this.tableNameAddSuffix(*stmt,tbSuffix)
+			nStmt := this.tableNameAddSuffix(*stmt,rule.NodeDB,tbSuffix)
 			mplan.AddPlanQuery(&nStmt,"")
 		}
 		//
@@ -102,10 +102,13 @@ func (this *insertPlanBuilder) getRuleKeyValue(ruleKey string) (expr sqlparser.E
 	return valExpr,true
 }
 //
-func  (this *insertPlanBuilder) tableNameAddSuffix(stmt sqlparser.Insert,tbSuffix string) sqlparser.Insert{
+func  (this *insertPlanBuilder) tableNameAddSuffix(stmt sqlparser.Insert,dbName,tbSuffix string) sqlparser.Insert{
 	nStmt := sqlparser.Insert{}
 	nStmt = stmt
 	newTb := nStmt.Table.ToViewName()
+	if !nStmt.Table.Qualifier.IsEmpty(){
+		newTb.Qualifier = sqlparser.NewTableIdent(dbName)
+	}
 	newTb.Name = sqlparser.NewTableIdent(nStmt.Table.Name.String() + "_" + tbSuffix)
 	nStmt.Table = newTb
 	return nStmt

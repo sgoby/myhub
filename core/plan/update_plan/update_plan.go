@@ -60,7 +60,7 @@ func (this *updatePlanBuilder) createSelectStmt(rResults []result.RuleResult,stm
 			NodeDBName:rule.NodeDB,
 		}
 		for _,tbSuffix := range rule.TbSuffixs{
-			nStmt := this.tableNameAddSuffix(*stmt,tbSuffix)
+			nStmt := this.tableNameAddSuffix(*stmt,rule.NodeDB,tbSuffix)
 			mplan.AddPlanQuery(&nStmt,"")
 		}
 		//
@@ -69,7 +69,7 @@ func (this *updatePlanBuilder) createSelectStmt(rResults []result.RuleResult,stm
 	return plans,nil
 }
 //
-func  (this *updatePlanBuilder) tableNameAddSuffix(stmt sqlparser.Update,tbSuffix string) sqlparser.Update{
+func  (this *updatePlanBuilder) tableNameAddSuffix(stmt sqlparser.Update,dbName,tbSuffix string) sqlparser.Update{
 	nStmt := sqlparser.Update{}
 	nStmt = stmt
 	switch expr := nStmt.TableExprs[0].(type) {
@@ -82,6 +82,9 @@ func  (this *updatePlanBuilder) tableNameAddSuffix(stmt sqlparser.Update,tbSuffi
 		if tbn, ok := expr.Expr.(sqlparser.TableName); ok {
 			oldName := tbn.Name.String()
 			newTb := tbn.ToViewName()
+			if !tbn.Qualifier.IsEmpty(){
+				newTb.Qualifier = sqlparser.NewTableIdent(dbName)
+			}
 			newTb.Name = sqlparser.NewTableIdent(oldName + "_" + tbSuffix)
 			nAli.Expr = newTb
 			//glog.Info(nStmt.From[0],tbSuffix)

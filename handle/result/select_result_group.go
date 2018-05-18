@@ -59,11 +59,16 @@ func sortGroupRows(rows [][]sqltypes.Value, fieldIndexs []int) (newRows [][]sqlt
 func (this *SelectResult) handleRowsGroupBy() (err error) {
 	fieldIndexs := []int{}
 	exprs := this.stmt.GroupBy //sqlparser.SelectExprs
+	//
+	var valStr string
 	for _, expr := range exprs {
 		buf := sqlparser.NewTrackedBuffer(nil)
 		expr.Format(buf)
-		index := this.getFieldIndex(buf.String());
-		fieldIndexs = append(fieldIndexs, index)
+		valStr = buf.String()
+		index := this.getFieldIndex(valStr);
+		if index >= 0 {
+			fieldIndexs = append(fieldIndexs, index)
+		}
 	}
 	if len(fieldIndexs) > 0 {
 		//

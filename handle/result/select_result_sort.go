@@ -6,6 +6,7 @@ import (
 	"github.com/sgoby/sqlparser"
 	"strconv"
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
+	"regexp"
 )
 
 func (this *SelectResult) RowsNum() int {
@@ -20,11 +21,27 @@ func (this *SelectResult) Len() int {
 // Less方法报告索引i的元素是否比索引j的元素小
 func (this *SelectResult) Less(i, j int) bool {
 	rows := this.tempRows
+	reg,err := regexp.Compile("^[1-9][0-9]*$")
+	if err != nil{
+		return false;
+	}
+	var valStr string
+	var index int;
 	for _, order := range this.stmt.OrderBy {
 		buf := sqlparser.NewTrackedBuffer(nil)
 		order.Expr.Format(buf)
-		//mField := buf.String()
-		index := this.getFieldIndex(buf.String())
+		valStr = buf.String()
+		index = this.getFieldIndex(valStr)
+		if index < 0 && reg.MatchString(valStr){
+			indexN,err := strconv.ParseInt(valStr,10,64)
+			if err == nil && int(indexN) <= len(this.tempFields){
+				index = int(indexN) - 1
+			}
+		}
+		//
+		if index < 0{
+			return false;
+		}
 		//
 		s := true
 		if CompareValue(rows[i][index], rows[j][index]) > 0 {

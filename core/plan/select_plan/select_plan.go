@@ -101,7 +101,7 @@ func (this *selectPlanBuilder) createSelectStmt(rResults []result.RuleResult, st
 			NodeDBName: rule.NodeDB,
 		}
 		for _, tbSuffix := range rule.TbSuffixs {
-			nStmt := this.tableNameAddSuffix(*stmt, tbSuffix)
+			nStmt := this.tableNameAddSuffix(*stmt,rule.NodeDB, tbSuffix)
 			if this.limitRowcount > 0{
 				//change limit rowcount
 				nStmt.Limit = new(sqlparser.Limit)
@@ -117,7 +117,7 @@ func (this *selectPlanBuilder) createSelectStmt(rResults []result.RuleResult, st
 }
 
 //
-func (this *selectPlanBuilder) tableNameAddSuffix(stmt sqlparser.Select, tbSuffix string) sqlparser.Select {
+func (this *selectPlanBuilder) tableNameAddSuffix(stmt sqlparser.Select,dbName, tbSuffix string) sqlparser.Select {
 	nStmt := sqlparser.Select{}
 	nStmt = stmt
 	switch expr := nStmt.From[0].(type) {
@@ -130,6 +130,9 @@ func (this *selectPlanBuilder) tableNameAddSuffix(stmt sqlparser.Select, tbSuffi
 		if tbn, ok := expr.Expr.(sqlparser.TableName); ok {
 			oldName := tbn.Name.String()
 			newTb := tbn.ToViewName()
+			if !tbn.Qualifier.IsEmpty(){
+				newTb.Qualifier = sqlparser.NewTableIdent(dbName)
+			}
 			newTb.Name = sqlparser.NewTableIdent(oldName + "_" + tbSuffix)
 			nAli.Expr = newTb
 			//glog.Info(nStmt.From[0],tbSuffix)
