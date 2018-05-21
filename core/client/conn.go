@@ -269,7 +269,7 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 	plans, err := this.buildSchemaPlan(db, stmt)
 	if len(plans) < 1 && err == nil {
 		// if build failed
-		return this.execProxyPlan(db, query, rwType)
+		return this.execProxyPlan(db, stmt,query, rwType)
 	} else if err != nil {
 		return sqltypes.Result{}, err
 	}
@@ -304,9 +304,6 @@ func (this *Connector) describe(query string)(rs sqltypes.Result,err error,ok bo
 	dbName := this.GetDB()
 	sTbName := arr[0]
 	if len(arr) > 1{
-		if arr[0] != dbName{//Denies Authority
-			return sqltypes.Result{}, fmt.Errorf("Denies Authority"),true;
-		}
 		sTbName = arr[1]
 	}
 	//
@@ -317,7 +314,12 @@ func (this *Connector) describe(query string)(rs sqltypes.Result,err error,ok bo
 	tb := db.GetTable(sTbName)
 	if tb == nil{
 		if len(db.GetProxyDbName()) > 0 {
-			proxyRs,err := this.execProxyPlan(db, query, node.HOST_WRITE)
+			if len(arr) > 1 {
+				arr[0] = db.GetProxyDbName();
+			}
+			tokens[1] = strings.Join(arr,".")
+			query = strings.Join(tokens," ")
+			proxyRs,err := this.execProxyPlan(db, nil,query, node.HOST_WRITE)
 			return proxyRs,err,true;
 		}
 		return sqltypes.Result{}, fmt.Errorf("Table '%s' doesn't exist",sTbName),true;
@@ -335,6 +337,7 @@ func (this *Connector) describe(query string)(rs sqltypes.Result,err error,ok bo
 	resultRows.AddField("Extra",querypb.Type_VARCHAR)
 	//
 	for _,column := range createStmt.TableSpec.Columns{
+
 		Null := "YES"
 		if column.Type.NotNull{
 			Null = "NO"
@@ -355,9 +358,12 @@ func (this *Connector) describe(query string)(rs sqltypes.Result,err error,ok bo
 		}
 		//
 		mType := column.Type.Type
-		//lenBuf := sqlparser.NewTrackedBuffer(nil)
-		//column.Type.Scale.Format(lenBuf)
-		//mType += fmt.Sprintf("(%s)",lenBuf.String())
+		if column.Type.Length != nil{
+			lenBuf := sqlparser.NewTrackedBuffer(nil)
+			column.Type.Length.Format(lenBuf)
+			mType += fmt.Sprintf("(%s)",lenBuf.String())
+			glog.Info(mType)
+		}
 		resultRows.AddRow(column.Name.String(),mType,Null,
 			Key,valDefault,Extra)
 	}
@@ -414,7 +420,14 @@ func (this *Connector) showKeys(pStmt *sqlparser.Show,query string)(rs sqltypes.
 	tb := db.GetTable(sTbName)
 	if tb == nil{
 		if len(db.GetProxyDbName()) > 0 {
-			proxyRs,err := this.execProxyPlan(db, query, node.HOST_WRITE)
+			showFrom := mShow.From
+			if len(mShow.From) > 0 {
+				fromArr := strings.Split(showFrom,".")
+				fromArr[0] = db.GetProxyDbName()
+				mShow.From = strings.Join(fromArr,".")
+				query = mShow.String()
+			}
+			proxyRs,err := this.execProxyPlan(db,nil, query, node.HOST_WRITE)
 			return proxyRs,err,true;
 		}
 		return sqltypes.Result{}, fmt.Errorf("Table '%s' doesn't exist",sTbName),true;
@@ -468,7 +481,15 @@ func (this *Connector) showFields(pStmt *sqlparser.Show,query string)(rs sqltype
 	tb := db.GetTable(sTbName)
 	if tb == nil{
 		if len(db.GetProxyDbName()) > 0 {
-			proxyRs,err := this.execProxyPlan(db, query, node.HOST_WRITE)
+			showFrom := mShow.From
+			if len(mShow.From) > 0 {
+				fromArr := strings.Split(showFrom,".")
+				fromArr[0] = db.GetProxyDbName()
+				mShow.From = strings.Join(fromArr,".")
+				query = mShow.String()
+			}
+			// = proxyDbName
+			proxyRs,err := this.execProxyPlan(db,nil, query, node.HOST_WRITE)
 			return proxyRs,err,true;
 		}
 		return sqltypes.Result{}, fmt.Errorf("Table '%s' doesn't exist",sTbName),true;
@@ -554,7 +575,7 @@ func (this *Connector) showTables(pStmt *sqlparser.Show,query string)(rs sqltype
 	proxyDbName := db.GetProxyDbName()
 	if len(proxyDbName) > 0 {
 		mShow.From = proxyDbName
-		proxyRs,err = this.execProxyPlan(db, mShow.String(), node.HOST_WRITE)
+		proxyRs,err = this.execProxyPlan(db, nil,mShow.String(), node.HOST_WRITE)
 	}
 	//Tables_in_dbName,Tables_type
 	tbNames := db.GetTableNames()
@@ -647,7 +668,7 @@ func (this *Connector) getSchemaTableByName(tbName string) (*schema.Table, error
 
 //========================================================================
 //execute shard plan
-func (this *Connector) execProxyPlan(db *schema.Database, query string, rwType string) (sqltypes.Result, error) {
+func (this *Connector) execProxyPlan(db *schema.Database, pStmt sqlparser.Statement, query string, rwType string) (rs sqltypes.Result, err error) {
 	proxyDbName := db.GetProxyDbName()
 	if len(proxyDbName) < 1 {
 		return sqltypes.Result{}, fmt.Errorf("no database")
@@ -656,11 +677,31 @@ func (this *Connector) execProxyPlan(db *schema.Database, query string, rwType s
 	if err != nil {
 		return sqltypes.Result{}, err
 	}
-	rs, err := myClient.Exec(query)
-	//fmt.Println(rs)
-	return rs, err
+	if pStmt == nil {
+		return myClient.Exec(query)
+	}
+	switch stmt := pStmt.(type) {
+	case *sqlparser.Select:
+		if stmt.From != nil{
+			for _,from := range stmt.From{
+				if expr,ok := from.(*sqlparser.AliasedTableExpr);ok{
+					if tbn, ok := expr.Expr.(sqlparser.TableName); ok {
+						if !tbn.Qualifier.IsEmpty(){
+							newTb := tbn.ToViewName()
+							if !tbn.Qualifier.IsEmpty(){
+								newTb.Qualifier = sqlparser.NewTableIdent(proxyDbName)
+							}
+							expr.Expr = newTb
+							query = sqlparser.String(stmt)
+						}
+					}
+				}
+			}
+		}
+	default:
+	}
+	return myClient.Exec(query)
 }
-
 //
 func (this *Connector) execAutoCreatePlans(plans []plan.Plan) (sqltypes.Result, error) {
 	return this.execSchemaPlans(nil, plans, node.HOST_WRITE)
