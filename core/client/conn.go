@@ -686,7 +686,7 @@ func (this *Connector) execProxyPlan(db *schema.Database, pStmt sqlparser.Statem
 			for _,from := range stmt.From{
 				if expr,ok := from.(*sqlparser.AliasedTableExpr);ok{
 					if tbn, ok := expr.Expr.(sqlparser.TableName); ok {
-						if !tbn.Qualifier.IsEmpty(){
+						if !tbn.Qualifier.IsEmpty() && tbn.Qualifier.String() == this.GetDB(){
 							newTb := tbn.ToViewName()
 							if !tbn.Qualifier.IsEmpty(){
 								newTb.Qualifier = sqlparser.NewTableIdent(proxyDbName)
