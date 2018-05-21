@@ -2,6 +2,7 @@ package tb
 
 import (
 	"strings"
+	"fmt"
 )
 
 
@@ -42,6 +43,17 @@ func ParseShowStmt(query string) *Show{
 		}
 	}
 	return pShow;
+}
+func (this *Show) String() string {
+	fullStr := ""
+	if this.Full{
+		fullStr = "full"
+	}
+	query := fmt.Sprintf("show %s %s",fullStr,this.ExprStr)
+	if len(this.From) > 0{
+		query += fmt.Sprintf(" from %s",this.From)
+	}
+	return query
 }
 //
 func (this *Show) IsShowProcesslist() bool {

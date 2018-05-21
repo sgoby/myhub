@@ -35,6 +35,7 @@
         </hosts>
         <dataBases>
             <dataBase name="test" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+			<dataBase name="lb_ss" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
             <dataBase name="lb_livegame" host="host_2" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
             <!--
             <dataBase name="db2" host =""  maxOpenConns="16" maxIdleConns = "4" maxIdleTime = "30"/>
@@ -45,7 +46,7 @@
     </node>
     <!-- 分片后的表 -->
     <schema>
-        <dataBase name="db1" >
+        <dataBase name="db1" proxyDataBase="lb_ss">
             <!--  rule: hash | range | date_month | date_day  -->
             <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="dealer_info.sql"/>
             <table name="cash_record" ruleKey="add_time" rule="rang_2" createSql="cash_record.sql"/>

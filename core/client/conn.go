@@ -551,8 +551,10 @@ func (this *Connector) showTables(pStmt *sqlparser.Show,query string)(rs sqltype
 	}
 	//如果有代理数据库，先获取代的表格
 	var proxyRs sqltypes.Result
-	if len(db.GetProxyDbName()) > 0 {
-		proxyRs,err = this.execProxyPlan(db, query, node.HOST_WRITE)
+	proxyDbName := db.GetProxyDbName()
+	if len(proxyDbName) > 0 {
+		mShow.From = proxyDbName
+		proxyRs,err = this.execProxyPlan(db, mShow.String(), node.HOST_WRITE)
 	}
 	//Tables_in_dbName,Tables_type
 	tbNames := db.GetTableNames()
@@ -655,7 +657,7 @@ func (this *Connector) execProxyPlan(db *schema.Database, query string, rwType s
 		return sqltypes.Result{}, err
 	}
 	rs, err := myClient.Exec(query)
-	fmt.Println(rs)
+	//fmt.Println(rs)
 	return rs, err
 }
 
