@@ -22,6 +22,7 @@ import (
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
 	"github.com/sgoby/myhub/tb"
 	"strings"
+	"net"
 )
 
 const (
@@ -39,6 +40,8 @@ type Connector struct {
 	cancel func()
 	// ctx lives for the life of the Connector.
 	ctx context.Context
+	//  active Time
+	lastActiveTime time.Time
 }
 
 //just used for sys auto create table
@@ -52,7 +55,7 @@ func NewConnector(c *mysql.Conn) *Connector {
 		MyConn: c,
 		mu:     new(sync.Mutex),
 		transactionMap:make(map[string]*mysql.Tx),
-
+		lastActiveTime:time.Now(),
 	}
 	conn.ctx, conn.cancel = context.WithCancel(core.App().Context)
 	return conn;
@@ -158,12 +161,30 @@ func (this *Connector) getTransactionTx(dsn string) *mysql.Tx {
 func (this *Connector) UseDataBase(dbName string) {
 	this.MyConn.SchemaName = dbName
 }
-
+//
+func (this *Connector) UpActiveTime()  {
+	this.lastActiveTime =time.Now()
+}
+//
+func (this *Connector) GetLastActiveTime() time.Time  {
+	return this.lastActiveTime;
+}
 //
 func (this *Connector) GetDB() string {
 	return this.MyConn.SchemaName
 }
-
+//
+func (this *Connector) GetUser() string {
+	return this.MyConn.User;
+}
+//
+func (this *Connector) GetConnectionID() int64 {
+	return this.MyConn.ID();
+}
+//
+func (this *Connector) GetRemoteAddr() net.Addr {
+	return this.MyConn.RemoteAddr()
+}
 //
 func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltypes.Result, error) {
 	rwType := node.HOST_WRITE
@@ -255,11 +276,16 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 	return this.execSchemaPlans(stmt, plans, rwType)
 }
 //
-func (this *Connector) Close() error{
+func (this *Connector) Close() (err error){
 	if len(this.transactionMap) > 0{
-		err := this.TxRollback()
+		err = this.TxRollback()
 		this.clearTransactionTx()
-		return err
+	}
+	if !this.MyConn.IsClosed(){
+		this.MyConn.Close()
+	}
+	if this.cancel != nil{
+		this.cancel()
 	}
 	return nil
 }

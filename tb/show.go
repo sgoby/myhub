@@ -1,6 +1,8 @@
 package tb
 
-import "strings"
+import (
+	"strings"
+)
 
 
 const(
@@ -8,6 +10,7 @@ const(
 	SHOW_FIELDS = "fields"
 	SHOW_KEYS = "keys"
 	SHOW_CREATE = "create"
+	SHOW_PROCESSLIST = "processlist"
 )
 
 type Show struct {
@@ -19,6 +22,7 @@ type Show struct {
 func ParseShowStmt(query string) *Show{
 	pShow := &Show{}
 	query = strings.Replace(query,"`","",-1)
+	query = strings.Replace(query,"\n","",-1)
 	query = strings.ToLower(query)
 	tokens := strings.Split(query," ")
 	//
@@ -27,7 +31,7 @@ func ParseShowStmt(query string) *Show{
 		switch token {
 		case "full":
 			pShow.Full = true
-		case SHOW_TABLES,SHOW_FIELDS,SHOW_KEYS,SHOW_CREATE:
+		case SHOW_TABLES,SHOW_FIELDS,SHOW_KEYS,SHOW_CREATE,SHOW_PROCESSLIST:
 			pShow.ExprStr = token
 		case "from":
 			findFrom = true;
@@ -39,6 +43,14 @@ func ParseShowStmt(query string) *Show{
 	}
 	return pShow;
 }
+//
+func (this *Show) IsShowProcesslist() bool {
+	if this.ExprStr == SHOW_PROCESSLIST{
+		return true;
+	}
+	return false;
+}
+//
 func (this *Show) IsShowTables() bool {
 	if this.ExprStr == SHOW_TABLES{
 		return true;
