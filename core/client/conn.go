@@ -368,6 +368,31 @@ func (this *Connector) execProxyPlan(db *schema.Database, pStmt sqlparser.Statem
 				}
 			}
 		}
+	case *sqlparser.Insert:
+		tbn := stmt.Table
+		if !tbn.IsEmpty() && tbn.Qualifier.String() == this.GetDB(){
+			if !tbn.Qualifier.IsEmpty(){
+				tbn.Qualifier = sqlparser.NewTableIdent(proxyDbName)
+			}
+		}
+		stmt.Table = tbn
+	case *sqlparser.Update:
+		if stmt.TableExprs != nil{
+			for _,tbExpr := range stmt.TableExprs{
+				if expr,ok := tbExpr.(*sqlparser.AliasedTableExpr);ok{
+					if tbn, ok := expr.Expr.(sqlparser.TableName); ok {
+						if !tbn.Qualifier.IsEmpty() && tbn.Qualifier.String() == this.GetDB(){
+							newTb := tbn.ToViewName()
+							if !tbn.Qualifier.IsEmpty(){
+								newTb.Qualifier = sqlparser.NewTableIdent(proxyDbName)
+							}
+							expr.Expr = newTb
+							query = sqlparser.String(stmt)
+						}
+					}
+				}
+			}
+		}
 	default:
 	}
 	return myClient.Exec(query)

@@ -17,27 +17,25 @@ package config
 import (
 	"fmt"
 	"testing"
-	"regexp"
-	"runtime"
 )
 
 func TestXmlConfig(t *testing.T){
 
-	//mConfig,err := ParseConfig("conf.xml")
-	//if err != nil{
-	//	fmt.Println(err)
-	//	return
-	//}
-	//fmt.Println(mConfig)
-	reg,err  := regexp.Compile("(^\\.\\/|^[a-zA-Z_][^\\:\\/])+")
+	mConfig,err := ParseConfig("conf.xml")
 	if err != nil{
 		fmt.Println(err)
 		return
 	}
-	//D:\workspace\golang\tt.log
-	if reg.MatchString("d:/conf/dealer_info.sql"){
-		fmt.Println("Ok",runtime.GOOS)
-	}
+	fmt.Println(mConfig)
+	//reg,err  := regexp.Compile("(^\\.\\/|^[a-zA-Z_][^\\:\\/])+")
+	//if err != nil{
+	//	fmt.Println(err)
+	//	return
+	//}
+	////D:\workspace\golang\tt.log
+	//if reg.MatchString("d:/conf/dealer_info.sql"){
+	//	fmt.Println("Ok",runtime.GOOS)
+	//}
 }
 
 

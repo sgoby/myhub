@@ -24,6 +24,7 @@ import (
 	"github.com/sgoby/myhub/core/schema"
 	"github.com/sgoby/myhub/core/rule"
 	"github.com/golang/glog"
+	"strings"
 )
 
 var myApp *Application
@@ -31,15 +32,13 @@ var myApp *Application
 func init(){
 	myApp = new(Application)
 	myApp.Context,myApp.cancelFunc = context.WithCancel(context.Background())
-	//myApp.serverHandle = server.NewServerHandler()
-	myApp.authServer = mysql.NewAuthServerStatic()
 }
 
 type Application struct {
 	Context      context.Context
 	cancelFunc   func()
 	config       config.Config
-	authServer   *mysql.AuthServerStatic
+	authServer   mysql.AuthServer
 	listener     *mysql.Listener
 	//serverHandle *server.ServerHandler
 	nodeManager  *node.NodeManager
@@ -49,6 +48,9 @@ type Application struct {
 //
 func App() *Application {
 	return myApp
+}
+func (this *Application) SetAuthServer(au mysql.AuthServer){
+	this.authServer = au
 }
 func (this *Application) GetSchema() *schema.Schema{
 	return this.schema
@@ -64,13 +66,29 @@ func (this *Application) GetListener() *mysql.Listener {
 	return this.listener
 }
 func (this *Application) LoadConfig(cnf config.Config) (err error){
-	this.authServer.Entries[cnf.ServeUser] = []*mysql.AuthServerStaticEntry{
-		{
-			Password:   cnf.ServePassword,
-			SourceHost: "",
-			//UserData:   "userData1",
-		},
+	authServerMy := mysql.NewAuthServerMy()
+	for _,userCnf := range cnf.Users {
+		if len(userCnf.AllowIps) < 1 {
+			userCnf.AllowIps = "127.0.0.1"
+		}
+		//
+		if len(userCnf.Databases) < 1 {
+			userCnf.Databases = "*"
+		}
+		//
+		mAuthServerMyEntry := &mysql.AuthServerMyEntry{
+			Password:userCnf.Password,
+			SourceHosts:strings.Split(userCnf.AllowIps,","),
+			Databases:strings.Split(userCnf.Databases,","),
+		}
+		//
+		if entry,ok := authServerMy.Entries[userCnf.Name];ok{
+			entry = append(entry,mAuthServerMyEntry)
+			continue
+		}
+		authServerMy.Entries[userCnf.Name] = []*mysql.AuthServerMyEntry{mAuthServerMyEntry}
 	}
+	this.SetAuthServer(authServerMy)
 	//
 	this.nodeManager,err = node.NewNodeManager(cnf.Nodes)
 	if err !=nil{

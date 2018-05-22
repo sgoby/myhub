@@ -10,6 +10,11 @@
     <webUser>admin</webUser>
     <webPassword>admin</webPassword>
 
+    <users>
+        <!-- db1,db2,ip1,ip2 * means any database or ip -->
+        <user name="root" passwrod="123456" charset="utf-8" db="*" ip="*"/>
+    </users>
+
     <logPath>run.log</logPath>
     <!--  log level[debug|info|warn|error],default error  -->
     <logLevel>debug</logLevel>

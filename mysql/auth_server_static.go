@@ -57,6 +57,16 @@ type AuthServerStaticEntry struct {
 	Password   string
 	UserData   string
 	SourceHost string
+	Databases  []string
+	AllowIps   []string
+}
+//
+func (this *AuthServerStaticEntry) IsAllowDB() bool {
+	return true
+}
+//
+func (this *AuthServerStaticEntry) IsAllowIP() bool {
+	return true;
 }
 
 // InitAuthServerStatic Handles initializing the AuthServerStatic if necessary.

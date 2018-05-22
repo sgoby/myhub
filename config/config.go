@@ -31,6 +31,16 @@ type Config struct {
 	Nodes  Node   `xml:"node"`
 	Schema Schema `xml:"schema"`
 	Rules  []Rule `xml:"rules>rule"`
+	Users  []User `xml:"users>user"`
+}
+
+//
+type User struct {
+	Name      string `xml:"name,attr"`
+	Password  string `xml:"passwrod,attr"`
+	Charset   string `xml:"charset,attr"`
+	Databases string `xml:"db,attr"`
+	AllowIps  string `xml:"ip,attr"`
 }
 
 //
@@ -89,13 +99,14 @@ type Rule struct {
 	Shards   []Shard `xml:"shard"`
 	Format   string  `xml:"format,attr"`
 }
+
 // record current config file dir
 var confDir string
 //
 func ParseConfig(cnfPath string) (conf *Config, err error) {
-	cnfPath,_,err = optFilePath(cnfPath)
-	if err != nil{
-		return nil,err
+	cnfPath, _, err = optFilePath(cnfPath)
+	if err != nil {
+		return nil, err
 	}
 	confDir = filepath.Dir(cnfPath)
 	//
@@ -121,11 +132,11 @@ func (this *Config) optSchema() error {
 	for dbN, db := range this.Schema.Databases {
 		for tbN, tb := range db.Tables {
 
-			fPath,ok,err := optFilePath(tb.CreateSql)
-			if !ok{
+			fPath, ok, err := optFilePath(tb.CreateSql)
+			if !ok {
 				continue
 			}
-			if err != nil{
+			if err != nil {
 				return err
 			}
 			tb.CreateSql = fPath
@@ -143,29 +154,29 @@ func (this *Config) optSchema() error {
 }
 
 //
-func optFilePath(filePath string) (newFilePath string,isFilePath bool, err error) {
+func optFilePath(filePath string) (newFilePath string, isFilePath bool, err error) {
 	reg, err := regexp.Compile("(^[a-zA-Z]\\:\\/|^\\.\\/|^\\/|^[a-zA-Z_])((\\w|\\/|\\.|\\-))*(\\/\\w+|\\.\\w+)$")
 	if err != nil {
-		return filePath,false, err
+		return filePath, false, err
 	}
 	localreg, err := regexp.Compile("(^\\.\\/|^[a-zA-Z_][^\\:\\/])+")
 	if err != nil {
-		return filePath,false, err
+		return filePath, false, err
 	}
 	if !reg.MatchString(filePath) {
-		return filePath,false, fmt.Errorf("the string is not file path: %s", filePath)
+		return filePath, false, fmt.Errorf("the string is not file path: %s", filePath)
 	}
 	//current directory
 	if localreg.MatchString(filePath) {
 		localDir := confDir
-		if(len(localDir) <= 0){
+		if (len(localDir) <= 0) {
 			localDir, err = os.Getwd()
 			if err != nil {
-				return filePath,true, err
+				return filePath, true, err
 			}
 		}
 		strings.Replace(filePath, "./", "", -1)
 		filePath = localDir + "/" + filePath;
 	}
-	return filePath,true, nil
+	return filePath, true, nil
 }
