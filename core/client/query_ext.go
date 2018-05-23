@@ -13,6 +13,30 @@ import (
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
 )
 
+//
+func (this *Connector) selectDababase(pStmt sqlparser.Statement,query string)(rs sqltypes.Result,err error,ok bool){
+	stmt,ok := pStmt.(*sqlparser.Select)
+	if !ok{
+		return rs,err,false;
+	}
+	buf := sqlparser.NewTrackedBuffer(nil)
+	stmt.SelectExprs.Format(buf)
+	if buf.String() != "database()"{
+		return
+	}
+	resultRows := mysql.NewRows()
+	resultRows.AddField("database()",querypb.Type_VARCHAR)
+	//
+	dbs := this.MyConn.GetDatabases()
+	for _,dbName := range dbs{
+		resultRows.AddRow(dbName)
+	}
+	//
+	rs = *resultRows.ToResult()
+	return rs,nil,true;
+}
+
+//
 func (this *Connector) describe(pStmt sqlparser.Statement,query string)(rs sqltypes.Result,err error,ok bool){
 	if _,ok := pStmt.(*sqlparser.OtherRead);!ok{
 		return rs,err,false;
@@ -274,6 +298,27 @@ func (this *Connector) showFields(pStmt sqlparser.Statement,query string)(rs sql
 		//
 		resultRows.AddRow(column.Name.String(),column.Type.Type,column.Type.Collate,Null,
 			Key,valDefault,Extra,"select,insert,update,references",valComment)
+	}
+	//
+	rs = *resultRows.ToResult()
+	return rs,nil,true;
+}
+
+//show databases
+func (this *Connector) showDatebases(pStmt sqlparser.Statement,query string)(rs sqltypes.Result,err error,ok bool){
+	if _,ok := pStmt.(*sqlparser.Show);!ok{
+		return rs,err,false;
+	}
+	mShow := tb.ParseShowStmt(query)
+	if !mShow.IsShowDatabases(){
+		return rs,err,false;
+	}
+	resultRows := mysql.NewRows()
+	resultRows.AddField("Database",querypb.Type_VARCHAR)
+	//
+	dbs := this.MyConn.GetDatabases()
+	for _,dbName := range dbs{
+		resultRows.AddRow(dbName)
 	}
 	//
 	rs = *resultRows.ToResult()

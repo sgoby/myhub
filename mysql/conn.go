@@ -209,8 +209,12 @@ func newConn(conn net.Conn) *Conn {
 	}
 }
 //
-func (c *Conn) UseDatabase(ud Getter){
-	c.UserData = ud
+func (c *Conn) GetDatabases()[]string{
+	mVTGateCallerID := c.UserData.Get()
+	if mVTGateCallerID == nil{
+		return nil
+	}
+	return mVTGateCallerID.GetGroups()
 }
 // readPacketDirect attempts to read a packet from the socket directly.
 // It needs to be used for the first handshake packet the server receives,

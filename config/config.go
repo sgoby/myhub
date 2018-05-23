@@ -123,11 +123,30 @@ func ParseConfig(cnfPath string) (conf *Config, err error) {
 	if err != nil {
 		return nil, err
 	}
+	err = mConfig.optUser()
+	if err != nil {
+		return nil, err
+	}
 	//
 	return mConfig, nil
 }
 
-//
+//optimization user's database
+func (this *Config) optUser() error {
+	for i,user := range this.Users{
+		if user.Databases == "*"{
+			var dbSlice []string
+			for _,db := range  this.Schema.Databases{
+				dbSlice = append(dbSlice,db.Name)
+			}
+			user.Databases = strings.Join(dbSlice,",")
+			this.Users[i] = user
+		}
+	}
+	return nil
+}
+
+//optimization schema
 func (this *Config) optSchema() error {
 	for dbN, db := range this.Schema.Databases {
 		for tbN, tb := range db.Tables {

@@ -12,6 +12,7 @@ const(
 	SHOW_KEYS = "keys"
 	SHOW_CREATE = "create"
 	SHOW_PROCESSLIST = "processlist"
+	SHOW_DATABASES = "databases"
 )
 
 type Show struct {
@@ -32,7 +33,7 @@ func ParseShowStmt(query string) *Show{
 		switch token {
 		case "full":
 			pShow.Full = true
-		case SHOW_TABLES,SHOW_FIELDS,SHOW_KEYS,SHOW_CREATE,SHOW_PROCESSLIST:
+		case SHOW_TABLES,SHOW_FIELDS,SHOW_KEYS,SHOW_CREATE,SHOW_PROCESSLIST,SHOW_DATABASES:
 			pShow.ExprStr = token
 		case "from":
 			findFrom = true;
@@ -55,6 +56,16 @@ func (this *Show) String() string {
 	}
 	return query
 }
+
+
+//
+func (this *Show) IsShowDatabases() bool {
+	if this.ExprStr == SHOW_DATABASES{
+		return true;
+	}
+	return false;
+}
+
 //
 func (this *Show) IsShowProcesslist() bool {
 	if this.ExprStr == SHOW_PROCESSLIST{

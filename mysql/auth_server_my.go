@@ -3,6 +3,7 @@ package mysql
 import (
 	"net"
 	"bytes"
+	querypb "github.com/sgoby/sqlparser/vt/proto/query"
 )
 
 type AuthServerMy struct{
@@ -45,17 +46,17 @@ func (this *AuthServerMy)ValidateHash(salt []byte, user string, authResponse []b
 	// Find the entry.
 	entries, ok := this.Entries[user]
 	if !ok {
-		return &StaticUserData{""}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
+		return &MyUserData{userName:user}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
 	}
 	for _, entry := range entries {
 		computedAuthResponse := scramblePassword(salt, []byte(entry.Password))
 		// Validate the password.
 		//fmt.Println(remoteAddr,entry.SourceHost)
 		if this.matchSourceHost(remoteAddr, entry.SourceHosts) && bytes.Compare(authResponse, computedAuthResponse) == 0 {
-			return &StaticUserData{entry.UserData}, nil
+			return &MyUserData{userName:user,databases:entry.Databases}, nil
 		}
 	}
-	return &StaticUserData{""}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
+	return &MyUserData{userName:user}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
 
 	return nil,nil
 }
@@ -74,15 +75,15 @@ func (this *AuthServerMy)Negotiate(c *Conn, user string, remoteAddr net.Addr) (G
 	// Find the entry.
 	entries, ok := this.Entries[user]
 	if !ok {
-		return &StaticUserData{""}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
+		return &MyUserData{userName:user}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
 	}
 	for _, entry := range entries {
 		// Validate the password.
 		if this.matchSourceHost(remoteAddr, entry.SourceHosts) && entry.Password == password {
-			return &StaticUserData{entry.UserData}, nil
+			return &MyUserData{userName:user,databases:entry.Databases}, nil
 		}
 	}
-	return &StaticUserData{""}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
+	return &MyUserData{userName:user}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
 }
 
 func (this *AuthServerMy)matchSourceHost(remoteAddr net.Addr, targetSourceHost []string) bool {
@@ -103,4 +104,19 @@ func (this *AuthServerMy)matchSourceHost(remoteAddr net.Addr, targetSourceHost [
 		}
 	}
 	return false
+}
+//
+// MyUserData holds the username
+type MyUserData struct {
+	userName string
+	databases []string
+}
+func NewMyUserData(value string) *MyUserData{
+	return &MyUserData{
+		userName:value,
+	}
+}
+// Get returns the wrapped username
+func (sud *MyUserData) Get() *querypb.VTGateCallerID {
+	return &querypb.VTGateCallerID{Username: sud.userName,Groups:sud.databases}
 }

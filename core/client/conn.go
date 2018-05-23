@@ -58,6 +58,7 @@ func NewConnector(c *mysql.Conn) *Connector {
 	}
 	conn.ctx, conn.cancel = context.WithCancel(core.App().Context)
 	//register ext function
+	conn.extStmtQuerys = append(conn.extStmtQuerys,conn.showDatebases)
 	conn.extStmtQuerys = append(conn.extStmtQuerys,conn.showTables)
 	conn.extStmtQuerys = append(conn.extStmtQuerys,conn.showKeys)
 	conn.extStmtQuerys = append(conn.extStmtQuerys,conn.showFields)
@@ -67,6 +68,19 @@ func NewConnector(c *mysql.Conn) *Connector {
 	return conn;
 }
 
+//Verify database permissions
+func (this *Connector) VerifyDatabaseAuth(dbName string) bool {
+	dbs := this.MyConn.GetDatabases()
+	if dbs == nil{
+		return true
+	}
+	for _,db := range dbs{
+		if db == "*" || db == dbName{
+			return true
+		}
+	}
+	return false
+}
 //
 func (this *Connector) AutoCrateTables() error {
 	mSchema := core.App().GetSchema()
@@ -211,8 +225,12 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 		this.clearTransactionTx()
 		return sqltypes.Result{RowsAffected: 1}, err
 	case *sqlparser.Use:
-		this.UseDataBase(nStmt.DBName.String())
-		return sqltypes.Result{RowsAffected: 1}, nil
+		dbName := nStmt.DBName.String()
+		if this.VerifyDatabaseAuth(dbName){
+			this.UseDataBase(nStmt.DBName.String())
+			return sqltypes.Result{RowsAffected: 1}, nil
+		}
+		return sqltypes.Result{},fmt.Errorf("Access denied for user '%s' to database '%s'",this.MyConn.User,dbName)
 	//case *sqlparser.Show:
 	//case *sqlparser.OtherRead: //explain
 	case *sqlparser.Update,*sqlparser.Insert,*sqlparser.Delete:
