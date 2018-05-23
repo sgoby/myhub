@@ -2,10 +2,6 @@
 <myhub>
     <serveListen>0.0.0.0:8520</serveListen>
     <!-- <include file="struts-plugin.xml" />  -->
-    <serveUser>root</serveUser>
-    <servePassword>123456</servePassword>
-    <serveCharset>utf-8</serveCharset>
-
     <webListen>0.0.0.0:9595</webListen>
     <webUser>admin</webUser>
     <webPassword>admin</webPassword>
@@ -21,7 +17,12 @@
     <allowIPs>127.0.0.1</allowIPs>
     <!-- the path of blacklist sql file -->
     <blacklistSql></blacklistSql>
-
+	
+	<users>
+        <!-- db1,db2,ip1,ip2 * means any database or ip -->
+        <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
+    </users>
+	
     <node>
         <hosts>
             <host type="write" name="host_1" address="127.0.0.1:3306" user="root" password="123456">
@@ -35,6 +36,8 @@
         </hosts>
         <dataBases>
             <dataBase name="test" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+			<dataBase name="shard_01" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+			<dataBase name="shard_02" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
 			<dataBase name="lb_ss" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
             <dataBase name="lb_livegame" host="host_2" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
             <!--
@@ -58,6 +61,7 @@
         <rule name="rang_1" ruleType="range" format="%04d">
             <!-- tableRowLimit : 2d,m,y,h-->
             <shard nodeDataBase="test" rowLimit="10000" between="1-8" />
+			<shard nodeDataBase="shard_01" rowLimit="10000" between="8-10" />
             <!--
             <shard nodeDataBase="test" rowLimit="10000" between="10-20" /> -->
             <!--
