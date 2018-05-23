@@ -76,6 +76,8 @@ type Handler interface {
 	// the first call to callback. So the Handler should not
 	// hang on to the byte slice.
 	ComQuery(c *Conn, query string, callback func(*sqltypes.Result) error) error
+	//
+	QueryTimeRecord(query string, startTime time.Time)
 }
 
 // Listener is the MySQL server protocol listener.
@@ -390,9 +392,8 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 					return
 				}
 			}
-
+			l.handler.QueryTimeRecord(query,queryStart)
 			timings.Record(queryTimingKey, queryStart)
-
 		case ComPing:
 			// No payload to that one, just return OKPacket.
 			c.recycleReadPacket()
@@ -421,9 +422,8 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 				return
 			}
 			//
-			log.Info(query)
+			log.Query("Query: ",query)
 			//
-
 			fieldSent := false
 			// sendFinished is set if the response should just be an OK packet.
 			sendFinished := false
@@ -477,52 +477,12 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 					return
 				}
 			}
-
-
-			/*
-			if stmt.Numparams > 0{
-				rows := NewRows()
-
-				//rows.AddField("",sqltypes.Null)
-
-				rows.AddField("Value",querypb.Type_DECIMAL)
-				rows.AddField("Variables_name",querypb.Type_VARCHAR)
-
-				rows.AddRow(562235.25,"1alkdjflasdjflaksjdflkj")
-				//rows.AddRow("lower_case_table_names",2)
-				qr := rows.ToResult()
-				log.Info("### ",rows.fields)
-				if err := c.writeFields(qr); err != nil {
-					log.Errorf("Error writing result to %s: %v", c, err)
-					return
-				}
-				log.Info(qr.Rows)
-				err := c.writeBinaryRows(qr)
-				if err != nil{
-					log.Errorf("Error writing result to %s: %v", c, err)
-					return
-				}
-				if err := c.writeEndResult(); err != nil {
-					log.Errorf("Error writing result to %s: %v", c, err)
-					return
-				}
-				//if err := c.flush(); err != nil {
-				//	log.Errorf("Error writing flush to %s: %v", c, err)
-				//	return
-				//}
-			}else {
-
-				if err := c.writeOKPacket(0, 0, c.StatusFlags, 0); err != nil {
-					log.Errorf("Error writing ComStmtExecute result to %s: %v", c, err)
-					return
-				}
-			}
-			*/
+			l.handler.QueryTimeRecord(query,queryStart)
 			timings.Record(queryTimingKey, queryStart)
 		case ComStmtPrepare:
 			log.Info("ComStmtPrepare")
-			queryStart := time.Now()
-			query,pStmt,err := c.parseComPrepare(data)
+			//queryStart := time.Now()
+			_,pStmt,err := c.parseComPrepare(data)
 			if err != nil{
 				if werr := c.writeErrorPacketFromError(err); werr != nil {
 					// If we can't even write the error, we're done.
@@ -531,7 +491,6 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 				}
 			}
 			c.recycleReadPacket()
-			log.Info(query);
 			//
 			c.statementId ++
 			pStmt.Id = c.statementId
@@ -546,7 +505,8 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 				log.Errorf("Error writing prepare to %s: %v", c, err)
 				return
 			}
-			timings.Record(queryTimingKey, queryStart)
+			//l.handler.QueryTimeRecord(query,queryStart)
+			//timings.Record(queryTimingKey, queryStart)
 		case ComStmtSendLongData:
 			log.Info("ComStmtSendLongData")
 		case ComStmtClose:

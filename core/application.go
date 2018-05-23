@@ -61,6 +61,9 @@ func (this *Application) GetRuleManager() *rule.RuleManager{
 func (this *Application) GetNodeManager() *node.NodeManager{
 	return this.nodeManager
 }
+func (this *Application) GetSlowLogTime() int{
+	return this.config.SlowLogTime
+}
 //
 func (this *Application) GetListener() *mysql.Listener {
 	return this.listener
@@ -116,6 +119,7 @@ func (this *Application) Run(sh mysql.Handler) (err error) {
 	}
 	defer this.listener.Close()
 	glog.Info("Listener on: ",this.config.ServeListen)
+	glog.Flush()
 	this.listener.Accept()
 	return nil
 }

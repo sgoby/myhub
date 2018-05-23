@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"github.com/sgoby/myhub/core/client"
 	"github.com/golang/glog"
+	"fmt"
+	"strings"
 )
 
 
@@ -18,14 +20,30 @@ func init() {
 	configFilePath := flag.String("cnf", "conf/myhub.xml", "setting config file")
 	appConf,err = config.ParseConfig(*configFilePath)
 	if err != nil{
-		glog.Exit(err)
+		fmt.Println(err)
 		return
 	}
-	//appConf = mConfig;
-	//flag.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
-	//glog's setting
 	flag.Set("alsologtostderr", "true")
 	flag.Set("log_dir", appConf.LogPath)
+	if strings.ToLower(appConf.LogSql) == "on"{
+		flag.Set("query", "true")
+	}
+	if appConf.SlowLogTime > 0{
+		flag.Set("slow", "true")
+	}
+	//
+	lv := 5
+	switch strings.ToLower(appConf.LogLevel){
+	case "debug","info":
+		lv = 0
+	case "warn":
+		lv = 1
+	case "error":
+		lv = 2
+	}
+	if lv > 0{
+		flag.Set("lv", fmt.Sprintf("%d",lv))
+	}
 	flag.Parse()
 }
 

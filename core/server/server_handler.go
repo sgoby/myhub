@@ -16,6 +16,7 @@ import (
 	"time"
 	"fmt"
 	"strconv"
+	"github.com/sgoby/myhub/core"
 )
 
 type ServerHandler struct {
@@ -49,8 +50,19 @@ func (this *ServerHandler) NewConnection(c *mysql.Conn) {
 func (this *ServerHandler) ConnectionClosed(c *mysql.Conn) {
 	this.delConnector(c)
 }
+func (this *ServerHandler) QueryTimeRecord(query string, startTime time.Time){
+	slowTime := core.App().GetSlowLogTime()
+	if slowTime <= 0{
+		return
+	}
+	millisecond := float64(time.Now().Sub(startTime).Nanoseconds()) / float64(1000000)
+	if millisecond < float64(slowTime){
+		return
+	}
+	glog.Slow(fmt.Sprintf("%s [use: %.2f]",query,millisecond))
+}
 func (this *ServerHandler) ComQuery(c *mysql.Conn, query string, callback func(*sqltypes.Result) error) error {
-	glog.Info(query)
+	glog.Query("Query: ", query)
 	reg, err := regexp.Compile("^\\/\\*.+?\\*\\/$")
 	if reg.MatchString(query) {
 		callback(&sqltypes.Result{})

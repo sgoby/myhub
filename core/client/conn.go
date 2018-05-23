@@ -480,7 +480,7 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 					return
 				}
 				//
-				glog.Info("Exec: ", sql)
+				glog.Query("Exec: ", sql)
 				rs, err := nodedb.ExecContext(mctx, sql)
 				if err != nil {
 					cancel()
