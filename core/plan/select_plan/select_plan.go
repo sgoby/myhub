@@ -90,7 +90,7 @@ func BuildSelectPlan(tb *schema.Table, stmt *sqlparser.Select, manager *rule.Rul
 		return nil, err
 	}
 	//If no matching rule, find all, just for select statement.
-	if expr != nil && (rResults == nil || len(rResults) < 1){
+	if isFound && (rResults == nil || len(rResults) < 1){
 		rResults, err = manager.GetShardRule(tb.GetRuleName(), nil)
 		if err != nil {
 			return nil, err
