@@ -66,7 +66,7 @@ type Handler interface {
 	// It is not established yet. The handler can decide to
 	// set StatusFlags that will be returned by the handshake methods.
 	// In particular, ServerStatusAutocommit might be set.
-	NewConnection(c *Conn)
+	NewConnection(c *Conn) interface{}
 
 	// ConnectionClosed is called when a connection is closed.
 	ConnectionClosed(c *Conn)
@@ -75,7 +75,8 @@ type Handler interface {
 	// Note the contents of the query slice may change after
 	// the first call to callback. So the Handler should not
 	// hang on to the byte slice.
-	ComQuery(c *Conn, query string, callback func(*sqltypes.Result) error) error
+	//ComQuery(c *Conn,conn interface{}, query string, callback func(*sqltypes.Result) error) error
+	ComQuery(conn interface{}, query string, callback func(*sqltypes.Result) error) error
 	//
 	QueryTimeRecord(query string, startTime time.Time)
 }
@@ -184,7 +185,7 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 	}()
 
 	// Tell the handler about the connection coming and going.
-	l.handler.NewConnection(c)
+	connInterface := l.handler.NewConnection(c)
 	defer l.handler.ConnectionClosed(c)
 
 	// Adjust the count of open connections
@@ -342,7 +343,7 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 			fieldSent := false
 			// sendFinished is set if the response should just be an OK packet.
 			sendFinished := false
-			err := l.handler.ComQuery(c, query, func(qr *sqltypes.Result) error {
+			err := l.handler.ComQuery(connInterface, query, func(qr *sqltypes.Result) error {
 				if sendFinished {
 					// Failsafe: Unreachable if server is well-behaved.
 					return io.EOF
@@ -427,7 +428,7 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 			fieldSent := false
 			// sendFinished is set if the response should just be an OK packet.
 			sendFinished := false
-			err = l.handler.ComQuery(c, query, func(qr *sqltypes.Result) error {
+			err = l.handler.ComQuery(connInterface, query, func(qr *sqltypes.Result) error {
 				if sendFinished {
 					// Failsafe: Unreachable if server is well-behaved.
 					return io.EOF

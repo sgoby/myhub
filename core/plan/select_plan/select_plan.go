@@ -95,6 +95,13 @@ func BuildSelectPlan(tb *schema.Table, stmt *sqlparser.Select, manager *rule.Rul
 		if err != nil {
 			return nil, err
 		}
+		//default select on first node when not matching rule
+		if len(rResults) > 0{
+			rResults = rResults[0:1]
+			if len(rResults[0].TbSuffixs) > 0 {
+				rResults[0].TbSuffixs = rResults[0].TbSuffixs[0:1]
+			}
+		}
 	}
 	return builder.createSelectStmt(rResults, stmt)
 }

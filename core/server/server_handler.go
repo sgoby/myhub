@@ -42,14 +42,20 @@ ConnectionClosed(c *Conn)
 // Note the contents of the query slice may change after
 // the first call to callback. So the Handler should not
 // hang on to the byte slice.
-ComQuery(c *Conn, query string, callback func(*sqltypes.Result) error) error
+ComQuery(conn interface{}, query string, callback func(*sqltypes.Result) error) error
 */
-func (this *ServerHandler) NewConnection(c *mysql.Conn) {
-	this.addConnector(c)
+
+//NewConnection is implement of Handler interface on server.go
+func (this *ServerHandler) NewConnection(c *mysql.Conn) interface{} {
+	return this.addConnector(c)
 }
+
+//ConnectionClosed is implement of Handler interface on server.go
 func (this *ServerHandler) ConnectionClosed(c *mysql.Conn) {
 	this.delConnector(c)
 }
+
+//QueryTimeRecord is implement of Handler interface on server.go
 func (this *ServerHandler) QueryTimeRecord(query string, startTime time.Time){
 	slowTime := core.App().GetSlowLogTime()
 	if slowTime <= 0{
@@ -61,13 +67,16 @@ func (this *ServerHandler) QueryTimeRecord(query string, startTime time.Time){
 	}
 	glog.Slow(fmt.Sprintf("%s [use: %.2f]",query,millisecond))
 }
-func (this *ServerHandler) ComQuery(c *mysql.Conn, query string, callback func(*sqltypes.Result) error) error {
+
+//ComQuery is implement of Handler interface on server.go
+func (this *ServerHandler) ComQuery(conn interface{}, query string, callback func(*sqltypes.Result) error) error {
 	glog.Query("Query: ", query)
 	reg, err := regexp.Compile("^\\/\\*.+?\\*\\/$")
 	if reg.MatchString(query) {
 		callback(&sqltypes.Result{})
 		return nil
 	}
+
 	//set names 'utf8' collate 'utf8_unicode_ci'
 	reg, err = regexp.Compile("^set.*collate")
 	if reg.MatchString(query) {
@@ -75,9 +84,9 @@ func (this *ServerHandler) ComQuery(c *mysql.Conn, query string, callback func(*
 		return nil
 	}
 	//
-	mConnector := this.getConnector(c)
-	if mConnector == nil {
-		return errors.New("not connect!")
+	mConnector,ok := conn.(*hubclient.Connector)
+	if !ok{
+		return errors.New("not connect 22!")
 	}
 	mConnector.UpActiveTime()
 	//
