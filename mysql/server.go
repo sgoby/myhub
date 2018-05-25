@@ -77,7 +77,10 @@ type Handler interface {
 	// hang on to the byte slice.
 	//ComQuery(c *Conn,conn interface{}, query string, callback func(*sqltypes.Result) error) error
 	ComQuery(conn interface{}, query string, callback func(*sqltypes.Result) error) error
-	//
+
+	// QueryTimeRecord is called after ComQuery, the function
+	// is recorded the time of ComQuery used, wirte slow log
+	// if it more than the slow log config's time
 	QueryTimeRecord(query string, startTime time.Time)
 }
 

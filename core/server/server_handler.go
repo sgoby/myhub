@@ -86,7 +86,7 @@ func (this *ServerHandler) ComQuery(conn interface{}, query string, callback fun
 	//
 	mConnector,ok := conn.(*hubclient.Connector)
 	if !ok{
-		return errors.New("not connect 22!")
+		return errors.New("not connect!")
 	}
 	mConnector.UpActiveTime()
 	//
@@ -117,7 +117,7 @@ func (this *ServerHandler) ComQuery(conn interface{}, query string, callback fun
 	}
 	//
 	rs, err := mConnector.ComQuery(stmt, query)
-	//日志记录到文件
+	//
 	defer glog.Flush()
 	//
 	if err != nil {
@@ -200,7 +200,8 @@ func (this *ServerHandler) comShow(stmt sqlparser.Statement,query string) (rs *s
 	//
 	return nil,nil, false
 }
-//
+
+//show a list of all client connector when execute sql: 'show processlist'
 func (this *ServerHandler) showProcesslist(pStmt sqlparser.Statement,query string)(rs *sqltypes.Result,err error,ok bool){
 	_, ok = pStmt.(*sqlparser.Show)
 	if !ok {
@@ -229,7 +230,8 @@ func (this *ServerHandler) showProcesslist(pStmt sqlparser.Statement,query strin
 	rs = resultRows.ToResult()
 	return rs,nil,true;
 }
-//
+
+//handle sql: 'select verstion()' or  select verstion() as verstionName
 func (this *ServerHandler) selectVersion(stmt sqlparser.Statement) (*sqltypes.Result, bool) {
 	selectStmt, ok := stmt.(*sqlparser.Select)
 	if !ok {
@@ -240,9 +242,13 @@ func (this *ServerHandler) selectVersion(stmt sqlparser.Statement) (*sqltypes.Re
 			buf := sqlparser.NewTrackedBuffer(nil)
 			aliaExpr.Expr.Format(buf)
 			if buf.String() == "version()" {
+				fieldName := "version()"
+				if !aliaExpr.As.IsEmpty() {
+					fieldName = aliaExpr.As.String()
+				}
 				rows := mysql.NewRows()
-				rows.AddField("version()", querypb.Type_VARCHAR)
-				rows.AddRow("1.0.0 - MyHub")
+				rows.AddField(fieldName, querypb.Type_VARCHAR)
+				rows.AddRow(mysql.DefaultServerVersion)
 				return rows.ToResult(), true
 			}
 		}
@@ -251,7 +257,7 @@ func (this *ServerHandler) selectVersion(stmt sqlparser.Statement) (*sqltypes.Re
 	return nil, false
 }
 
-//获取当前总连接数
+//get total number of all connector
 func (this *ServerHandler) getConnectorCount() int {
 	return len(this.connectorMap)
 }
@@ -276,7 +282,8 @@ func (this *ServerHandler) getConnectorById(id int64) *hubclient.Connector {
 	}
 	return nil
 }
-//
+
+//add a client connector when a new client connected
 func (this *ServerHandler) addConnector(c *mysql.Conn) *hubclient.Connector {
 	mConnector := hubclient.NewConnector(c)
 	//
@@ -291,7 +298,7 @@ func (this *ServerHandler) addConnector(c *mysql.Conn) *hubclient.Connector {
 	return mConnector
 }
 
-//
+//delete a client connector when client closed.
 func (this *ServerHandler) delConnector(c *mysql.Conn) {
 	//
 	this.mu.Lock()

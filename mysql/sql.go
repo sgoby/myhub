@@ -181,23 +181,6 @@ func (this *Client) UseDB(dbName string) error {
 	_, err := this.Exec("use "+dbName)
 	return err
 }
-/*
-//
-func (this *Client) Begin() error {
-	_, err := this.Exec("begin")
-	return err
-}
-//
-func (this *Client) Commit() error {
-	_, err := this.Exec("commit")
-	return err
-}
-//
-func (this *Client) Rollback() error {
-	_, err := this.Exec("rollback")
-	return err
-}
-*/
 //
 func (this *Client) SetAutoCommit(n uint8) error {
 	return nil
