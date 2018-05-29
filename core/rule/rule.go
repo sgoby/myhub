@@ -3,8 +3,7 @@ package rule
 import (
 	"github.com/sgoby/sqlparser"
 	"github.com/sgoby/myhub/config"
-	"github.com/sgoby/myhub/core/rule/range_rule"
-	"github.com/sgoby/myhub/core/rule/hash_rule"
+	"github.com/sgoby/myhub/core/rule/stmt"
 	"github.com/sgoby/myhub/core/rule/result"
 	"errors"
 	"fmt"
@@ -14,11 +13,13 @@ type RuleManager struct {
 	RuleMap map[string]IRule
 }
 
+
 const (
 	RULE_HASH  = "hash"
 	RULE_DATE  = "date"
 	RULE_RANGE = "range"
 )
+
 //
 type IRule interface {
 	//获取分表后缀
@@ -32,17 +33,17 @@ func NewRuleManager(cnfs []config.Rule) (*RuleManager, error) {
 	var err error
 	for _, cnf := range cnfs {
 		if cnf.RuleType == RULE_RANGE {
-			rule, err = range_rule.NewRuleRange(cnf)
+			rule, err = stmt.NewRuleRange(cnf)
 			if err != nil {
 				return nil, err
 			}
 		} else if cnf.RuleType == RULE_DATE {
-			rule, err = range_rule.NewRuleDateRange(cnf)
+			rule, err = stmt.NewRuleDateRange(cnf)
 			if err != nil {
 				return nil, err
 			}
 		} else if cnf.RuleType == RULE_HASH {
-			rule, err = hash_rule.NewRuleHash(cnf)
+			rule, err = stmt.NewRuleHash(cnf)
 			if err != nil {
 				return nil, err
 			}

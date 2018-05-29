@@ -98,6 +98,7 @@ type Rule struct {
 	RuleType string  `xml:"ruleType,attr"`
 	Shards   []Shard `xml:"shard"`
 	Format   string  `xml:"format,attr"`
+	MaxLen   int     `xml:"maxLen,attr"`
 }
 
 // record current config file dir

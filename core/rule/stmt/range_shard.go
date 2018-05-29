@@ -1,4 +1,4 @@
-package range_rule
+package stmt
 
 import (
 	"strconv"
@@ -18,13 +18,6 @@ type Shard struct {
 	rangeType    string                 //
 	ranges       map[string]*shardRange //201602
 }
-
-//for Shard rangeType
-const (
-	RANGE_DATE    = "date"
-	RANGE_NUMERIC = "numeric"
-	RANGE_STRING  = "string"
-)
 //
 type shardRange struct {
 	start int64
@@ -96,7 +89,7 @@ func NewShard(cnf config.Shard, rangeType string,beginVal int64,format string) (
 		rangeType:    rangeType,
 		//rangeStr : cnf.RangeExpr,  //25-56
 	}
-	if rangeType == RANGE_NUMERIC {
+	if rangeType == RANGE_NUMERIE {
 		limit, err := strconv.ParseInt(limitStr, 10, 64)
 		if err != nil {
 			return nil, err
@@ -105,8 +98,7 @@ func NewShard(cnf config.Shard, rangeType string,beginVal int64,format string) (
 		if err != nil{
 			return nil,err
 		}
-
-	}else if rangeType == RANGE_DATE {
+	}else if rangeType == RANGE_DATA {
 		err := sh.parseRangeDate(limitStr, format)
 		if err != nil{
 			return nil,err

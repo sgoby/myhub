@@ -11,8 +11,6 @@ import (
 	"fmt"
 	"strings"
 )
-
-
 var appConf *config.Config
 
 func init() {

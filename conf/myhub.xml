@@ -8,21 +8,21 @@
 
     <logPath>logs</logPath>
     <!--  log level[debug|info|warn|error],default error  -->
-    <logLevel>warn</logLevel>
+    <logLevel>debug</logLevel>
     <!--  if set log_sql(on|off) off,the sql log will not output  -->
-    <logSql>off</logSql>
+    <logSql>on</logSql>
     <!--  only log the query that take more than slow_log_time (ms)  -->
-    <slowLogTime>10</slowLogTime>
+    <slowLogTime>100</slowLogTime>
 
     <allowIPs>127.0.0.1</allowIPs>
     <!-- the path of blacklist sql file -->
     <blacklistSql></blacklistSql>
-	
-	<users>
+
+    <users>
         <!-- db1,db2,ip1,ip2 * means any database or ip -->
         <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
     </users>
-	
+
     <node>
         <hosts>
             <host type="write" name="host_1" address="127.0.0.1:3306" user="root" password="123456">
@@ -36,9 +36,9 @@
         </hosts>
         <dataBases>
             <dataBase name="test" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
-			<dataBase name="shard_01" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
-			<dataBase name="shard_02" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
-			<dataBase name="lb_ss" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+            <dataBase name="shard_01" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+            <dataBase name="shard_02" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+            <dataBase name="lb_ss" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
             <dataBase name="lb_livegame" host="host_2" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
             <!--
             <dataBase name="db2" host =""  maxOpenConns="16" maxIdleConns = "4" maxIdleTime = "30"/>
@@ -53,6 +53,7 @@
             <!--  rule: hash | range | date_month | date_day  -->
             <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="dealer_info.sql"/>
             <table name="cash_record" ruleKey="add_time" rule="rang_2" createSql="cash_record.sql"/>
+            <table name="api_log" ruleKey="id" rule="hash_1" createSql="api_log.sql"/>
 
         </dataBase>
         <dataBase name="test_1" proxyDataBase="test"/>
@@ -61,17 +62,19 @@
         <rule name="rang_1" ruleType="range" format="%04d">
             <!-- tableRowLimit : 2d,m,y,h-->
             <shard nodeDataBase="test" rowLimit="10000" between="1-8" />
-			<shard nodeDataBase="shard_01" rowLimit="10000" between="8-10" />
-            <!--
-            <shard nodeDataBase="test" rowLimit="10000" between="10-20" /> -->
-            <!--
-            <shard nodeDataBase="db2" rowLimit="100000000" between="11-20" format="Ymd"/>
-            <shard nodeDataBase="db3" rowLimit="100000000" between="21-30"/>
-            -->
+            <shard nodeDataBase="shard_01" rowLimit="10000" between="8-10" />
         </rule>
         <rule name="rang_2" ruleType="date" format="ym">
             <!-- tableRowLimit : 2d,m,y,h-->
             <shard nodeDataBase="test" rowLimit="1m" between="201801-201901" />
         </rule>
+        <!-- 'maxLen' represents the count of hash shard total, default 1024 -->
+        <rule name="hash_1" ruleType="hash" format="%04d"  maxLen = "12">
+            <!-- 'rowLimit' represents every shard table continuous rows count split by 'ruleKey', default 1;
+                 'between' represents the hash mod value range. ex:'between="0-3",ruleKey's value is 10,
+                 and 'maxlen'= 10, 10%3 = 1,it menas in the between  0-3 -->
+            <shard nodeDataBase="test" rowLimit="2" between="0-6" />
+            <shard nodeDataBase="shard_01" rowLimit="2" between="6-12" />
+        </rule>
     </rules>
-</myhub>  
+</myhub>

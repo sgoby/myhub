@@ -1,4 +1,4 @@
-package range_rule
+package stmt
 
 import (
 	"github.com/sgoby/sqlparser"
@@ -13,22 +13,24 @@ import (
 
 type RuleRange struct {
 	shards    []*Shard
+	strconvInt64 func(expr sqlparser.Expr) (int64,error)
 	rangeType string
 }
 //
 func NewRuleRange(rcnf config.Rule) (*RuleRange,error){
-	rHash := new(RuleRange)
-	rHash.rangeType = RANGE_NUMERIC;
+	pRange := new(RuleRange)
+	pRange.rangeType = RANGE_NUMERIE;
 	beginVal := int64(0)
+	pRange.strconvInt64 = pRange.strconvInt64Entity
 	for _,shcnf := range rcnf.Shards{
-		mShard, err := NewShard(shcnf, rHash.rangeType,beginVal,rcnf.Format)
+		mShard, err := NewShard(shcnf, pRange.rangeType,beginVal,rcnf.Format)
 		if err != nil {
 			return nil, err
 		}
-		rHash.shards = append(rHash.shards, mShard)
+		pRange.shards = append(pRange.shards, mShard)
 		_,beginVal = mShard.GetRange()
 	}
-	return rHash,nil
+	return pRange,nil
 }
 //
 func (this *RuleRange)GetShardRule(expr sqlparser.Expr) (rResults []result.RuleResult, err error){
@@ -254,17 +256,17 @@ func (this *RuleRange) GetAllShardRule()(rResults []result.RuleResult, err error
 	return
 }
 //
-func (this *RuleRange)strconvInt64(expr sqlparser.Expr) (int64,error){
+func (this *RuleRange)strconvInt64Entity(expr sqlparser.Expr) (int64,error){
 	buf := sqlparser.NewTrackedBuffer(nil)
 	expr.Format(buf)
-	if this.rangeType == RANGE_NUMERIC {
+	if this.rangeType == RANGE_NUMERIE{
 		startNum, err := strconv.ParseInt(buf.String(), 10, 64)
 		if err != nil {
 			return 0, err
 		}
 		return startNum, nil
 	}
-	if this.rangeType == RANGE_DATE {
+	if this.rangeType == RANGE_DATA {
 		var err error
 		dateTimeStr := buf.String()
 		dateTimeStr = strings.TrimSpace(dateTimeStr)
