@@ -8,7 +8,7 @@
 
     <logPath>logs</logPath>
     <!--  log level[debug|info|warn|error],default error  -->
-    <logLevel>debug</logLevel>
+    <logLevel>warn</logLevel>
     <!--  if set log_sql(on|off) off,the sql log will not output  -->
     <logSql>on</logSql>
     <!--  only log the query that take more than slow_log_time (ms)  -->

@@ -125,5 +125,7 @@ func (this *Application) Run(sh mysql.Handler) (err error) {
 }
 //
 func (this *Application) Close(){
-
+	this.cancelFunc()
+	this.nodeManager.Close()
+	this.listener.Close()
 }

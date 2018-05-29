@@ -696,7 +696,7 @@ func (l *loggingT) output(s severity, buf *buffer, file string, line int, alsoTo
 	} else if l.toStderr {
 		os.Stderr.Write(data)
 	} else {
-		if alsoToStderr || l.alsoToStderr || s >= l.stderrThreshold.get() {
+		if alsoToStderr || l.alsoToStderr { // || s >= l.stderrThreshold.get()
 			os.Stderr.Write(data)
 		}
 		if l.file[s] == nil {

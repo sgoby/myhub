@@ -26,6 +26,9 @@ import (
 	"github.com/golang/glog"
 	"fmt"
 	"strings"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 var appConf *config.Config
@@ -38,7 +41,6 @@ func init() {
 		fmt.Println(err)
 		return
 	}
-	flag.Set("alsologtostderr", "true")
 	flag.Set("log_dir", appConf.LogPath)
 	if strings.ToLower(appConf.LogSql) == "on" {
 		flag.Set("query", "true")
@@ -58,6 +60,8 @@ func init() {
 	}
 	if lv > 0 {
 		flag.Set("lv", fmt.Sprintf("%d", lv))
+	}else{
+		flag.Set("alsologtostderr", "true")
 	}
 	flag.Parse()
 }
@@ -74,6 +78,27 @@ func main() {
 		glog.Exit(err)
 		return
 	}
+	//
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+		syscall.SIGPIPE,
+	)
+	//
+	go func() {
+		for {
+			sig := <-sc
+			if sig == syscall.SIGINT || sig == syscall.SIGTERM || sig == syscall.SIGQUIT {
+				glog.Flush()
+				core.App().Close()
+				glog.Exit("MyHub close ...")
+			} else if sig == syscall.SIGPIPE {
+				glog.Info("Ignore broken pipe signal")
+			}
+		}
+	}()
 	//
 	serverHandle := server.NewServerHandler()
 	core.App().Run(serverHandle)
