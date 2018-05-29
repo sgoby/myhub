@@ -40,11 +40,6 @@
             <dataBase name="shard_02" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
             <dataBase name="lb_ss" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
             <dataBase name="lb_livegame" host="host_2" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
-            <!--
-            <dataBase name="db2" host =""  maxOpenConns="16" maxIdleConns = "4" maxIdleTime = "30"/>
-            <dataBase name="db3" host =""  maxOpenConns="16" maxIdleConns = "4" maxIdleTime = "30"/>
-            <dataBase name="db5" host =""  maxOpenConns="16" maxIdleConns = "4" maxIdleTime = "30"/>
-            -->
         </dataBases>
     </node>
     <!-- 分片后的表 -->
