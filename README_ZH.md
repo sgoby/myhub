@@ -26,7 +26,6 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
 - 支持跨节点的count,sum,max和min等聚合函数。
 - 支持单个分表的join操作，即支持分表和另一张不分表的join操作。
 - 支持跨节点的order by,group by,limit等操作。
-- 支持将sql发送到特定的节点执行。
 - 支持事务。
 - 支持数据库直接代理转发。
 - 支持（insert,delete,update,replace）到多个node上的子表。
