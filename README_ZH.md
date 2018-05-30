@@ -40,7 +40,7 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
 --cnf 配置文件存放配置文件, 默认'conf/myhub.xml'
 如：myhub.exe --cnf conf/myhub.xml
 
-<serveListen>0.0.0.0:8520</serveListen>
+    <serveListen>0.0.0.0:8520</serveListen>
 MyHub 监听的host和端口
 
 
