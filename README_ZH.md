@@ -46,24 +46,24 @@ MyHub 监听的host和端口
 
 ### 日志(log)配置:
 
-        <logPath>logs</logPath>
+    <logPath>logs</logPath>
 配置路径，默认是Myhub当前目录下的logs目录
 
-        <logLevel>warn</logLevel>
+    <logLevel>warn</logLevel>
 日志级别:[debug|info|warn|error]
 
-        <logSql>on</logSql>
+    <logSql>on</logSql>
 是否开启sql语句输出[on|off]
 
-<slowLogTime>100</slowLogTime>
+    <slowLogTime>100</slowLogTime>
 开启慢日志（时间单位:毫秒）,默认是0不开启
 
 ### 用户(user)配置:
 
-        <users>
-            <!-- db1,db2,ip1,ip2 * means any database or ip -->
-            <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
-        </users>
+    <users>
+        <!-- db1,db2,ip1,ip2 * means any database or ip -->
+        <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
+    </users>
 
 参数说明：
 - 'name' 连接myhub的用户名
@@ -77,16 +77,16 @@ MyHub 监听的host和端口
 添加两个逻辑数库:db1,test_1;
 其中db1中添加了三个逻辑表:dealer_info,cash_record,api_log;
 
-<schema>
-    <dataBase name="db1" proxyDataBase="lb_ss">
-        <!--  rule: hash | range | date_month | date_day  -->
-        <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="dealer_info.sql"/>
-        <table name="cash_record" ruleKey="add_time" rule="rang_2" createSql="cash_record.sql"/>
-        <table name="api_log" ruleKey="id" rule="hash_1" createSql="api_log.sql"/>
-    </dataBase>
-    <!-- 直接代理 -->
-    <dataBase name="test_1" proxyDataBase="test"/>
-</schema>
+    <schema>
+        <dataBase name="db1" proxyDataBase="lb_ss">
+            <!--  rule: hash | range | date_month | date_day  -->
+            <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="dealer_info.sql"/>
+            <table name="cash_record" ruleKey="add_time" rule="rang_2" createSql="cash_record.sql"/>
+            <table name="api_log" ruleKey="id" rule="hash_1" createSql="api_log.sql"/>
+        </dataBase>
+        <!-- 直接代理 -->
+        <dataBase name="test_1" proxyDataBase="test"/>
+    </schema>
 
 参数说明：
 - 'name' Myhub 的数据库名
