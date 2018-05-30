@@ -39,7 +39,15 @@ func init() {
 	appConf, err = config.ParseConfig(*configFilePath)
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(0)
+	}
+	if len(appConf.LogPath) < 1{
+		appConf.LogPath = "logs"
+	}
+	err = os.MkdirAll(appConf.LogPath,os.ModeDir)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
 	}
 	flag.Set("log_dir", appConf.LogPath)
 	if strings.ToLower(appConf.LogSql) == "on" {

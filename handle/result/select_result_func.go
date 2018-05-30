@@ -147,7 +147,7 @@ func execFuncComm(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int
 			}
 		}
 	}
-	//记录最后一条
+	//record last row 记录最后一条
 	if len(tempRow) > 0 && len(tempRow) > funcIndex {
 		if funcType == FUNC_AVG {
 			valFloat64 := float64(tempCount) / float64(stepCount)
@@ -196,11 +196,11 @@ func execFuncMinMaxComm(rows [][]sqltypes.Value, groupFieldIndexs []int, funcInd
 			if equalUniqueSlice(uniqueKey, lastUniqueKey) {
 				currentVal := row[funcIndex]
 				tempVal := tempRow[funcIndex]
-				if funcType == FUNC_MAX { //大于
+				if funcType == FUNC_MAX { //more than 大于
 					if CompareValue(currentVal, tempVal) > 0 {
 						tempRow = row
 					}
-				} else if funcType == FUNC_MIN { //小于
+				} else if funcType == FUNC_MIN { //less than 小于
 					if CompareValue(currentVal, tempVal) < 0 {
 						tempRow = row
 					}
@@ -214,7 +214,7 @@ func execFuncMinMaxComm(rows [][]sqltypes.Value, groupFieldIndexs []int, funcInd
 				tempRow = row
 			}
 		} else {
-			//第一行
+			//first row 第一行
 			if tempRow == nil {
 				tempRow = row
 				continue

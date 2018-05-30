@@ -25,6 +25,7 @@ import (
 	"github.com/sgoby/myhub/core/rule"
 	"github.com/golang/glog"
 	"strings"
+	"github.com/sgoby/myhub/utils/autoinc"
 )
 
 var myApp *Application
@@ -125,6 +126,7 @@ func (this *Application) Run(sh mysql.Handler) (err error) {
 }
 //
 func (this *Application) Close(){
+	autoinc.Close()
 	this.cancelFunc()
 	this.nodeManager.Close()
 	this.listener.Close()

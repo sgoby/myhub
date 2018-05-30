@@ -33,7 +33,7 @@ type SelectResult struct {
 	tempFields  []*querypb.Field
 }
 
-//
+//new a selectRuesult
 func NewSelectResult(stmt *sqlparser.Select) *SelectResult {
 	mSelectResult := &SelectResult{
 		stmt:        stmt,
@@ -45,7 +45,7 @@ func NewSelectResult(stmt *sqlparser.Select) *SelectResult {
 	return mSelectResult;
 }
 
-//添加结果集
+//add result
 func (this *SelectResult) AddResult(rsArr ... sqltypes.Result) {
 	for _, rs := range rsArr {
 		this.resultSlice = append(this.resultSlice, rs)
@@ -59,14 +59,14 @@ func (this *SelectResult) AddResult(rsArr ... sqltypes.Result) {
 	}
 }
 
-//获取最终结查
+//build a new result
 func (this *SelectResult) BuildNewResult() (*sqltypes.Result, error) {
 	//fmt.Println(this.tempRows)
 	err := this.handleRowsGroupBy()
 	if err != nil {
 		return nil, err
 	}
-	//排序
+	//sort
 	this.sort()
 	//
 	this.optTempFieldsRows()
@@ -123,7 +123,7 @@ func (this *SelectResult) optTempFields() {
 	}
 }
 
-//对优化批序的字段进行还原
+//recover the fields add by sort
 func (this *SelectResult) optTempFieldsRows() {
 	if this.hasStarExpr() {
 		return
@@ -147,7 +147,7 @@ func (this *SelectResult) optTempFieldsRows() {
 	}
 }
 
-//
+//check the expression has '*' else
 func (this *SelectResult) hasStarExpr() bool {
 	for _, sExpr := range this.stmt.SelectExprs {
 		_, startOk := sExpr.(*sqlparser.StarExpr)
@@ -159,12 +159,11 @@ func (this *SelectResult) hasStarExpr() bool {
 }
 
 //====================================================
-//排序
+//sort
 func (this *SelectResult) sort() {
 	if this.stmt.OrderBy == nil {
 		return
 	}
-	//fmt.Println("#### OrderBy")
 	sort.Sort(this)
 }
 
@@ -173,7 +172,6 @@ func (this *SelectResult) getFieldIndex(name string) int {
 	if this.tempFields == nil || len(this.tempFields) < 1 {
 		return -1
 	}
-	//======
 	for index, field := range this.tempFields {
 		if field.Name == name {
 			return index

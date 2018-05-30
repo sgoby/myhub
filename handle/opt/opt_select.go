@@ -25,7 +25,8 @@ import (
 type optSelect struct {
 	stmt        *sqlparser.Select
 }
-//
+
+//optimize select query sql.
 func OptimizeSelectSql(sql string)(nSql string,nErr error){
 	stmt,err := sqlparser.Parse(sql)
 	if err != nil{
@@ -38,7 +39,8 @@ func OptimizeSelectSql(sql string)(nSql string,nErr error){
 	nStmt := OptimizeSelect(selectStmt)
 	return sqlparser.String(nStmt),nil
 }
-//
+
+//optimize select statement.
 func OptimizeSelectStmtSql(stmt sqlparser.Statement)(nSql string,isSelect bool,nErr error){
 	if stmt == nil{
 		return "",false,fmt.Errorf("not select statement")
@@ -50,7 +52,8 @@ func OptimizeSelectStmtSql(stmt sqlparser.Statement)(nSql string,isSelect bool,n
 	nStmt := OptimizeSelect(selectStmt)
 	return sqlparser.String(nStmt),true,nil
 }
-//优化select 语句
+
+//optimize select statement.
 func OptimizeSelect(stmt *sqlparser.Select)(nStmt *sqlparser.Select){
 	mOptSelect := optSelect{
 		stmt: stmt,
@@ -58,18 +61,18 @@ func OptimizeSelect(stmt *sqlparser.Select)(nStmt *sqlparser.Select){
 	mOptSelect.optimizeSelectGroup()
 	return mOptSelect.stmt
 }
-//
+
+//optimize select group.
 func (this *optSelect) optimizeSelectGroup(){
 	if len(this.stmt.GroupBy) < 1 {
 		return
 	}
-	//
 	for _,group := range this.stmt.GroupBy{
 		buf := sqlparser.NewTrackedBuffer(nil)
 		group.Format(buf)
 		//
 		if this.getFieldIndex(buf.String()) < 0{
-			//添加group by 字段
+			//add 'group by' expression
 			gSelectExpr := &sqlparser.AliasedExpr{
 				As:sqlparser.NewColIdent(""),
 				Expr:group,
@@ -78,7 +81,8 @@ func (this *optSelect) optimizeSelectGroup(){
 		}
 	}
 }
-//
+
+//find field index by name
 func (this *optSelect) getFieldIndex(name string) int {
 	mSelectExprs := this.stmt.SelectExprs
 	for i,sExpr := range mSelectExprs{
