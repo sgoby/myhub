@@ -46,13 +46,13 @@ MyHub 监听的host和端口
 
 ### 日志(log)配置:
 
-<logPath>logs</logPath>
+        <logPath>logs</logPath>
 配置路径，默认是Myhub当前目录下的logs目录
 
-<logLevel>warn</logLevel>
+        <logLevel>warn</logLevel>
 日志级别:[debug|info|warn|error]
 
-<logSql>on</logSql>
+        <logSql>on</logSql>
 是否开启sql语句输出[on|off]
 
 <slowLogTime>100</slowLogTime>
@@ -60,10 +60,10 @@ MyHub 监听的host和端口
 
 ### 用户(user)配置:
 
-<users>
-    <!-- db1,db2,ip1,ip2 * means any database or ip -->
-    <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
-</users>
+        <users>
+            <!-- db1,db2,ip1,ip2 * means any database or ip -->
+            <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
+        </users>
 
 参数说明：
 - 'name' 连接myhub的用户名
