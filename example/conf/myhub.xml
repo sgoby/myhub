@@ -14,7 +14,6 @@
     <!--  only log the query that take more than slow_log_time (ms)  -->
     <slowLogTime>100</slowLogTime>
 
-    <allowIPs>127.0.0.1</allowIPs>
     <!-- the path of blacklist sql file -->
     <blacklistSql></blacklistSql>
 
