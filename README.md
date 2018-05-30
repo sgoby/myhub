@@ -4,16 +4,15 @@ MyHub是一个由Go开发高性能MySQL代理中间件项目，MyHub在满足基
 MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真MySql。
 
 ### 基础功能
-
-- 支持SQL读写分离。
+- 遵守Mysql原生协议，跨语言的通用中间件代理
 - 支持透明的MySQL连接池，不必每次新建连接。
 - 支持多个slave，slave之间通过权值进行负载均衡。
 - 支持读写分离。
 - 支持多租户。
-- 支持主流语言（java,php,python,C/C++,Go)SDK的mysql的prepare特性。
+- 支持prepare特性。
 - 支持到后端DB的最大连接数限制。
 - 支持SQL日志及慢日志输出。
-- 支持客户端IP访问白名单机制，只有白名单中的IP才能访问MyHub。
+- 支持客户端IP白名单。
 - 支持字符集设置。
 - 支持last_insert_id功能。
 - 支持show databases,show tables
@@ -26,7 +25,7 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
 - 支持跨节点的count,sum,max和min等聚合函数。
 - 支持单个分表的join操作，即支持分表和另一张不分表的join操作。
 - 支持跨节点的order by,group by,limit等操作。
-- 支持事务。
+- 支持分布式事务（弱XA）。
 - 支持数据库直接代理转发。
 - 支持（insert,delete,update,replace）到多个node上的子表。
 - 支持自动在多个node上创建分表。
