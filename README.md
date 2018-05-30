@@ -1,6 +1,6 @@
 # MyHub简介
 
-MyHub是一个由Go开发高性能MySQL Proxy项目，MyHub在满足基本的读写分离的功能上，致力于简化MySQL分库分表操作。
+MyHub是一个由Go开发高性能MySQL代理中间件项目，MyHub在满足基本的读写分离的功能上，致力于简化MySQL分库分表操作。
 MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真MySql。
 
 ### 基础功能
