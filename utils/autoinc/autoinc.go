@@ -22,6 +22,7 @@ import (
 	"os"
 	"io"
 	"log"
+	"path/filepath"
 )
 type AutoIncrement struct {
 	incKey string
@@ -44,7 +45,13 @@ func init() {
 //
 func initMapFile() error {
 	var err error
-	mapFile, err = os.OpenFile("inc.json", os.O_RDWR|os.O_CREATE, os.ModeType)
+	dir := "data"
+	err = os.MkdirAll("data",os.ModeDir)
+	if err != nil {
+		return err
+	}
+	fname := filepath.Join(dir, "inc.bin")
+	mapFile, err = os.OpenFile(fname, os.O_RDWR|os.O_CREATE, os.ModeType)
 	if err != nil {
 		return err
 	}
@@ -115,6 +122,7 @@ func doSave(){
 }
 func Close() {
 	if mapFile != nil {
+		mapFile.Sync()
 		mapFile.Close()
 	}
 }
