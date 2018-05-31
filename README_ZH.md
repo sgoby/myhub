@@ -174,4 +174,4 @@ myhub 目前支持hash、range、date(年、月、日)三种分片规则
         (2. date 规则表示每个分表按时间划分的行数，值为数字和[y|m|d]组合 如：rowLimit = "1ym" 表示每个分表存的数据是一个月
         (3. hash 规则表示每个分表按hash取模的余数，值类型为数字 如：rowLimit = "2"  10 % 0 和 10 % 1 是存在同一个表中
 
-- 'shard' -> 'between' 节点数据库的限制范围
+- 'shard' -> 'between' 分片在节点数据库的限制范围
