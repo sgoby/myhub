@@ -52,7 +52,7 @@ func (this *Connector) selectLastInsertId(pStmt sqlparser.Statement,query string
 			}
 		}
 	}
-	return rs,nil,true;
+	return rs,nil,false;
 }
 //
 func (this *Connector) selectDababase(pStmt sqlparser.Statement,query string)(rs sqltypes.Result,err error,ok bool){
