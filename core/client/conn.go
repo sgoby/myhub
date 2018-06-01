@@ -57,6 +57,8 @@ type Connector struct {
 	lastActiveTime time.Time
 	//
 	extStmtQuerys []func(pStmt sqlparser.Statement,query string)(rs sqltypes.Result,err error,ok bool)
+	//LAST_INSERT_ID
+	lastInsertId  uint64
 }
 
 //just used for sys auto create table
@@ -74,6 +76,7 @@ func NewConnector(c *mysql.Conn) *Connector {
 	}
 	conn.ctx, conn.cancel = context.WithCancel(core.App().Context)
 	//register ext function
+	//conn.extStmtQuerys = append(conn.extStmtQuerys,conn.selectLastInsertId)
 	conn.extStmtQuerys = append(conn.extStmtQuerys,conn.showDatebases)
 	conn.extStmtQuerys = append(conn.extStmtQuerys,conn.showTables)
 	conn.extStmtQuerys = append(conn.extStmtQuerys,conn.showKeys)
@@ -227,6 +230,10 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 	switch nStmt := stmt.(type) {
 	case *sqlparser.Select:
 		rwType = node.HOST_READ
+		rs,err,ok := this.selectLastInsertId(stmt,query)
+		if err != nil || ok{
+			return rs, err
+		}
 	case *sqlparser.Begin: //begin transaction
 		this.InTransaction = true;
 		return sqltypes.Result{RowsAffected: 1}, nil
@@ -534,6 +541,10 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 		//
 		rsArr[0].RowsAffected = affectedRows
 		rsArr[0].InsertID = lastId
+		//
+		if lastId > 0{
+			this.lastInsertId = lastId
+		}
 		//
 		return rsArr[0], execErr
 	}

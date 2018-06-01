@@ -50,10 +50,10 @@ MyHub 监听的host和端口,默认端口:8520
 配置路径，默认是Myhub当前目录下的logs目录
 
     <logLevel>warn</logLevel>
-日志级别:[debug|info|warn|error]
+日志级别:[debug|info|warn|error] 默认error
 
     <logSql>on</logSql>
-是否开启sql语句输出[on|off]
+是否开启sql语句输出[on|off] 默认off
 
     <slowLogTime>100</slowLogTime>
 开启慢日志（时间单位:毫秒）,默认是0不开启
@@ -71,7 +71,7 @@ MyHub 监听的host和端口,默认端口:8520
 - 'passwrod' 连接myhub的密码
 - 'charset' 字符集
 - 'db' 可使用的逻辑数据库，多个用","分隔，如:'db1,db2'，'*'表示所有逻辑数据库
-- 'ip' 允许连接的客户端ip，多个用","分隔，如:'192.168.1.20,192.168.1.30'，'*'表示所有ip
+- 'ip' 允许连接的客户端ip，默认127.0.0.1 多个用","分隔，如:'192.168.1.20,192.168.1.30'，'*'表示所有ip
 
 
 
@@ -104,12 +104,13 @@ MyHub 监听的host和端口,默认端口:8520
 - 'host' -> 'address' 主机mysql地址
 - 'host' -> 'user' 主机mysql登录用户名
 - 'host' -> 'password' 主机mysql登录密码
+- 'host' -> 'weight' 从库（读库）权值
 - 'dataBase' 节点主机数据库
 - 'dataBase' -> 'name' 节点上的数据库名称
 - 'dataBase' -> 'host' 节点主机名称，对应：'host' -> 'name'
-- 'dataBase' -> 'maxOpenConns' 数据库最大连接数
-- 'dataBase' -> 'maxIdleConns' 数据库连接最大空闲数
-- 'dataBase' -> 'maxIdleTime' 数据库连接最大空闲时间(时间单位：秒)
+- 'dataBase' -> 'maxOpenConns' 数据库最大连接数，默认:16
+- 'dataBase' -> 'maxIdleConns' 数据库连接最大空闲数，默认:4
+- 'dataBase' -> 'maxIdleTime' 数据库连接最大空闲时间(时间单位：秒)，默认:60
 
 ### 逻辑库(schema)配置:
 

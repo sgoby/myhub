@@ -24,10 +24,11 @@ import (
 	"strings"
 	"fmt"
 	"path/filepath"
+	"github.com/mcuadros/go-defaults"
 )
 
 type Config struct {
-	ServeListen   string `xml:"serveListen"`
+	ServeListen   string `xml:"serveListen" default:"0.0.0.0:8520"`
 	ServeUser     string `xml:"serveUser"`
 	ServePassword string `xml:"servePassword"`
 	ServeCharset  string `xml:"serveCharset"`
@@ -36,9 +37,9 @@ type Config struct {
 	WebUser     string `xml:"webUser"`
 	WebPassword string `xml:"webPassword"`
 	//
-	LogPath     string `xml:"logPath"`
-	LogLevel    string `xml:"logLevel"`
-	LogSql      string `xml:"logSql"`
+	LogPath     string `xml:"logPath" default:"logs"`
+	LogLevel    string `xml:"logLevel" default:"error"`
+	LogSql      string `xml:"logSql" default:"off"`
 	SlowLogTime int    `xml:"slowLogTime"`
 	//
 	AllowIPs     string `xml:"allowIPs"`
@@ -69,9 +70,9 @@ type Node struct {
 type OrgDatabase struct {
 	Name         string `xml:"name,attr"`
 	Host         string `xml:"host,attr"`
-	MaxOpenConns int    `xml:"maxOpenConns,attr"`
-	MaxIdleConns int    `xml:"maxIdleConns,attr"`
-	MaxIdleTime  int    `xml:"maxIdleTime,attr"`
+	MaxOpenConns int    `xml:"maxOpenConns,attr" default:"16"`
+	MaxIdleConns int    `xml:"maxIdleConns,attr" default:"4"`
+	MaxIdleTime  int    `xml:"maxIdleTime,attr" default:"60"`
 }
 type Host struct {
 	RwType   string `xml:"type,attr"`
@@ -145,6 +146,11 @@ func ParseConfig(cnfPath string) (conf *Config, err error) {
 		return nil, err
 	}
 	//
+	defaults.SetDefaults(mConfig)
+	for i,db := range mConfig.Nodes.Databases{
+		defaults.SetDefaults(&db)
+		mConfig.Nodes.Databases[i] = db
+	}
 	return mConfig, nil
 }
 
@@ -157,8 +163,14 @@ func (this *Config) optUser() error {
 				dbSlice = append(dbSlice,db.Name)
 			}
 			user.Databases = strings.Join(dbSlice,",")
-			this.Users[i] = user
 		}
+		if len(user.AllowIps) < 1{
+			user.AllowIps = "127.0.0.1"
+		}
+		if len(user.Charset) < 1{
+			user.Charset = "utf-8"
+		}
+		this.Users[i] = user
 	}
 	return nil
 }

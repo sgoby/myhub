@@ -41,9 +41,6 @@ func init() {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	if len(appConf.LogPath) < 1{
-		appConf.LogPath = "logs"
-	}
 	err = os.MkdirAll(appConf.LogPath,os.ModeDir)
 	if err != nil {
 		fmt.Println(err)
@@ -107,6 +104,11 @@ func main() {
 			}
 		}
 	}()
+	////
+	//go func(){
+	//	api,_ := web.NewApiServer(appConf)
+	//	api.Run()
+	//}()
 	//
 	serverHandle := server.NewServerHandler()
 	core.App().Run(serverHandle)

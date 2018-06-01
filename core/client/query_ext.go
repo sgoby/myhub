@@ -29,6 +29,31 @@ import (
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
 )
 
+func (this *Connector) selectLastInsertId(pStmt sqlparser.Statement,query string)(rs sqltypes.Result,err error,ok bool){
+	selectStmt,ok := pStmt.(*sqlparser.Select)
+	if !ok{
+		return rs,err,false;
+	}
+	if len(selectStmt.SelectExprs) > 0 {
+		if aliaExpr, ok := selectStmt.SelectExprs[0].(*sqlparser.AliasedExpr); ok {
+			buf := sqlparser.NewTrackedBuffer(nil)
+			aliaExpr.Expr.Format(buf)
+			//LAST_INSERT_ID()
+			glog.Info(buf.String())
+			if buf.String() == "last_insert_id()" {
+				fieldName := "last_insert_id()"
+				if !aliaExpr.As.IsEmpty() {
+					fieldName = aliaExpr.As.String()
+				}
+				rows := mysql.NewRows()
+				rows.AddField(fieldName, querypb.Type_INT64)
+				rows.AddRow(this.lastInsertId)
+				return *rows.ToResult(), nil,true
+			}
+		}
+	}
+	return rs,nil,true;
+}
 //
 func (this *Connector) selectDababase(pStmt sqlparser.Statement,query string)(rs sqltypes.Result,err error,ok bool){
 	stmt,ok := pStmt.(*sqlparser.Select)
