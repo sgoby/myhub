@@ -31,6 +31,26 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
 - 支持自动在多个node上创建分表。
 - 支持主键自增长ID。
 
+### 安装
+
+- 安装Golang
+- Linux 上安装(build_linux.sh)
+
+        dir=`pwd`
+        export GOPATH=$dir
+        echo $GOPATH
+        git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
+        go build -o bin/myhub src/github.com/sgoby/myhub/main.go
+        echo Congratulations. Build success!
+
+- Windows 上安装(build_windows.bat)
+
+        git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
+        set dir=%cd%
+        set GOPATH=%GOPATH%;%dir%
+        go build -o bin/myhub.exe src/github.com/sgoby/myhub/main.go
+        echo Congratulations. Build success!
+
 
 # MyHub配置入门
 
