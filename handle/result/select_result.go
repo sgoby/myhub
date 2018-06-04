@@ -94,7 +94,7 @@ func (this *SelectResult) BuildNewResult() (*sqltypes.Result, error) {
 		}
 		//
 		rows = make([][]sqltypes.Value,rowcount)
-		glog.Infof("### limit %d,%d", offset, rowcount)
+		//glog.Infof("### limit %d,%d", offset, rowcount)
 		if offset < int64(len(this.tempRows)) && rowcount > 0 {
 			if offset+rowcount < int64(len(this.tempRows)) {
 				copy(rows, this.tempRows[offset:offset+rowcount])

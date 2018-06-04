@@ -25,6 +25,7 @@ import (
 
 	"github.com/sgoby/sqlparser/sqltypes"
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
+	"regexp"
 )
 
 //
@@ -160,8 +161,8 @@ func execFuncComm(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int
 			} else if tempRow[funcIndex].IsUnsigned() {
 				tempRow[funcIndex] = sqltypes.NewUint64(uint64(tempCount))
 			} else if tempRow[funcIndex].Type() == querypb.Type_DECIMAL {
-				decStr := fmt.Sprintf("%.2f", tempCount)
-				decStr = strings.Replace(decStr, ".00", "", -1)
+				decStr := fmt.Sprintf("%f", tempCount)
+				decStr = optNumStr(decStr)
 				newV, _ := sqltypes.NewValue(querypb.Type_DECIMAL, []byte(decStr))
 				tempRow[funcIndex] = newV
 			} else {
@@ -173,7 +174,22 @@ func execFuncComm(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int
 	//
 	return newRows, nil
 }
-
+//
+func optNumStr(val string) string{
+	numStrs := strings.Split(val,".")
+	if len(numStrs) < 2{
+		return val
+	}
+	reg,err := regexp.Compile("[0]+$")
+	if err != nil{
+		return val
+	}
+	numStrs[1] = reg.ReplaceAllString(numStrs[1],"")
+	if len(numStrs[1]) < 1{
+		return numStrs[0]
+	}
+	return strings.Join(numStrs,".")
+}
 //
 func execFuncMax(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
 	return execFuncMinMaxComm(rows, groupFieldIndexs, funcIndex, FUNC_MAX)

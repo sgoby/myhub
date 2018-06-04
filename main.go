@@ -104,11 +104,6 @@ func main() {
 			}
 		}
 	}()
-	////
-	//go func(){
-	//	api,_ := web.NewApiServer(appConf)
-	//	api.Run()
-	//}()
 	//
 	serverHandle := server.NewServerHandler()
 	core.App().Run(serverHandle)
