@@ -22,7 +22,6 @@ import (
 	"sort"
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
 	"strconv"
-	"github.com/golang/glog"
 )
 
 //
