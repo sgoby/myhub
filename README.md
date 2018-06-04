@@ -184,8 +184,10 @@ myhub 目前支持hash、range、date(年、月、日)三种分片规则
 - 'name' (必需) 规则名称，在逻辑库表配置会用到
 - 'ruleType' (必需) 分片规则[range|hash|date]
 - 'format' (可选) 自动创建分表的后缀名，
-           如果分片规则是range|hash 格式为%d 如：format="%04d" 生成的表名是 table_0001;
-           如果分片规则是date 格式为[y|m|d] 分别表示年/月/日 可以是组合 如：format="ym" 生成的表名是 table_201805;
+
+        (1. 如果分片规则是range|hash 格式为%d 如：format="%04d" 生成的表名是 table_0001;
+        (2. 如果分片规则是date 格式为[y|m|d] 分别表示年/月/日 可以是组合 如：format="ym" 生成的表名是 table_201805;
+           
 - 'maxLen' (可选) 仅在hash 规则中有用, hash 取模中的被模数
 - 'shard' 规则分片
 - 'shard' -> 'nodeDataBase' 节点数据库名称，对应节点配置中的 'dataBase' -> 'name'
