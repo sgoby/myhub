@@ -140,4 +140,3 @@ func (this *Connector) explain(pStmt sqlparser.Statement,query string)(rs sqltyp
 	rs = *resultRows.ToResult()
 	return rs,nil,true;
 }
-
