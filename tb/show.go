@@ -19,6 +19,7 @@ package tb
 import (
 	"strings"
 	"fmt"
+	"github.com/golang/glog"
 )
 
 const (
@@ -78,7 +79,7 @@ func (this *Show) String() string {
 	if this.Full {
 		fullStr = "full"
 	}
-	query := fmt.Sprintf("show %s %s", fullStr, this.ExprStr)
+	query := fmt.Sprintf("show %s %s", fullStr, strings.Join(this.ExprStr," "))
 	if len(this.From) > 0 {
 		query += fmt.Sprintf(" from %s", this.From)
 	}
