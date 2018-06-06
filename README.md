@@ -139,7 +139,7 @@ MyHub 监听的host和端口,默认端口:8520
 其中db1中添加了三个逻辑表:dealer_info,cash_record,api_log;
 
     <schema>
-        <dataBase name="db1" proxyDataBase="lb_ss">
+        <dataBase name="db1" proxyDataBase="lb_ss" blacklistSql="blacklist/db1.sql">
             <!--  rule: hash | range | date_month | date_day  -->
             <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="dealer_info.sql"/>
             <table name="cash_record" ruleKey="add_time" rule="rang_2" createSql="cash_record.sql"/>
@@ -153,8 +153,7 @@ MyHub 监听的host和端口,默认端口:8520
 - 'dataBase' 逻辑数据库
 - 'dataBase' -> 'name' Myhub 的数据库名
 - 'dataBase' -> 'proxyDataBase' 代理的节点数据库名
-- 'dataBase' -> 'blacklistSql' SQL黑名单语句，多个用";"分隔，"?"表示通配符，值是可以是SQL文件路径，
-                               也可以是SQL语句，ex: delete from user where id = ?
+- 'dataBase' -> 'blacklistSql' SQL黑名单语句，多个用";"分隔，"?"表示通配符，值是可以是SQL文件路径，也可以是SQL语句，ex: delete from user where id = ?
 - 'table' 逻辑表
 - 'table' -> 'ruleKey'表示表分片所依赖的字段名
 - 'table' -> 'rule' 分表表分片规则，参见: rules
