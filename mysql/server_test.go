@@ -17,28 +17,16 @@ limitations under the License.
 package mysql
 
 import (
-	//"fmt"
 	"io/ioutil"
 	"net"
 	"os"
-	//"os/exec"
-	//"path"
-	//"strings"
 	"testing"
-	//"time"
-
 	"context"
-
 	"github.com/sgoby/sqlparser/sqltypes"
-	//vtenv "vitess.io/vitess/go/vt/env"
-	//"vitess.io/vitess/go/vt/tlstest"
-	//"vitess.io/vitess/go/vt/vterrors"
-	//"vitess.io/vitess/go/vt/vttls"
-
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
-	//vtrpcpb "vitess.io/vitess/go/vt/proto/vtrpc"
 	"fmt"
 	"github.com/sgoby/sqlparser"
+	"time"
 )
 
 var selectRowsResult = &sqltypes.Result{
@@ -73,14 +61,22 @@ type testHandler struct {
 func (th *testHandler) RegisterClient(pClient *Client){
 	th.client  = pClient
 }
-func (th *testHandler) NewConnection(c *Conn) {
+func (th *testHandler) NewConnection(c *Conn) (interface{}){
 	th.lastConn = c
+	return nil
 }
 
 func (th *testHandler) ConnectionClosed(c *Conn) {
 }
+// QueryTimeRecord is called after ComQuery, the function
+// is recorded the time of ComQuery used, wirte slow log
+// if it more than the slow log config's time
+func (th *testHandler) QueryTimeRecord(query string, startTime time.Time){
 
-func (th *testHandler) ComQuery(c *Conn, query string, callback func(*sqltypes.Result) error) error {
+}
+func (th *testHandler) ComQuery(conn interface{}, query string, callback func(*sqltypes.Result) error) error{
+
+//func (th *testHandler) ComQuery(c *Conn, query string, callback func(*sqltypes.Result) error) error {
 	fmt.Println(query)
 	switch query {
 	case "select version()":

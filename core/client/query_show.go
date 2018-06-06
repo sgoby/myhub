@@ -61,7 +61,16 @@ func (this *Connector) showCreate(pStmt *sqlparser.Show, query string, mShow *tb
 		if err != nil {
 			return rs, err, true;
 		}
-		resultRows.AddRow(tbName, db.GetTable(tbName).GetCreateSql())
+		tb := db.GetTable(tbName)
+		if tb == nil{
+			proxyDbName := db.GetProxyDbName()
+			if len(proxyDbName) > 0 {
+				query := fmt.Sprintf("show create table `%s`.`%s`",proxyDbName,tbName)
+				proxyRs, err := this.execProxyPlan(db, nil, query, node.HOST_WRITE)
+				return proxyRs, err,true
+			}
+		}
+		resultRows.AddRow(tbName, tb.GetCreateSql())
 		return *(resultRows.ToResult()), err, true;
 	}
 	//

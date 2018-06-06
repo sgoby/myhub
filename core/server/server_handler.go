@@ -68,35 +68,38 @@ func (this *ServerHandler) QueryTimeRecord(query string, startTime time.Time){
 
 //ComQuery is implement of Handler interface on server.go
 func (this *ServerHandler) ComQuery(conn interface{}, query string, callback func(*sqltypes.Result) error) error {
-	glog.Query("Query: ", query)
-	reg, err := regexp.Compile("^\\/\\*.+?\\*\\/$")
-	if reg.MatchString(query) {
-		callback(&sqltypes.Result{})
-		return nil
-	}
-	//set names 'utf8' collate 'utf8_unicode_ci'
-	reg, err = regexp.Compile("^set.*collate")
-	if reg.MatchString(query) {
-		callback(&sqltypes.Result{})
-		return nil
-	}
-	//
 	mConnector,ok := conn.(*hubclient.Connector)
 	if !ok{
 		return errors.New("not connect!")
 	}
 	mConnector.UpActiveTime()
 	//
-	if rs,err, isVersion := this.comKill(query); isVersion || err != nil{
-		if err != nil{
-			return err
-		}
-		callback(rs)
-		return nil
+	glog.Query("Query: ", query)
+	if this.isBlacklistQuery(query){
+		return fmt.Errorf("Myhub refused execute: %s",query)
 	}
 	//
 	stmt, err := sqlparser.Parse(query)
 	if err != nil {
+		reg, err := regexp.Compile("^\\/\\*.+?\\*\\/$")
+		if reg.MatchString(query) {
+			callback(&sqltypes.Result{})
+			return nil
+		}
+		//set names 'utf8' collate 'utf8_unicode_ci'
+		reg, err = regexp.Compile("^set.*collate")
+		if reg.MatchString(query) {
+			callback(&sqltypes.Result{})
+			return nil
+		}
+		//kill
+		if rs,err, isVersion := this.comKill(query); isVersion || err != nil{
+			if err != nil{
+				return err
+			}
+			callback(rs)
+			return nil
+		}
 		return err
 	}
 	//
@@ -112,6 +115,11 @@ func (this *ServerHandler) ComQuery(conn interface{}, query string, callback fun
 		return err
 	}
 	return nil
+}
+
+//if the query in the blacklist, Myhub will refuse execute
+func (this *ServerHandler) isBlacklistQuery(query string) bool{
+	return false
 }
 
 //NewConnection is implement of IServerHandler interface on conn.go
