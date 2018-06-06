@@ -37,6 +37,7 @@ import (
 	"github.com/sgoby/myhub/core/plan/create_plan"
 	"net"
 	"github.com/sgoby/myhub/tb"
+	"github.com/sgoby/myhub/core/plan/delete_plan"
 )
 
 const (
@@ -398,6 +399,17 @@ func (this *Connector) buildSchemaPlan(db *schema.Database, pStmt sqlparser.Stat
 		}
 		//
 		return insert_plan.BuildInsertPlan(tb, stmt, core.App().GetRuleManager(), this.GetDB())
+	case *sqlparser.Delete:
+		// not support multiple table
+		if len(stmt.TableExprs) > 1 || len(stmt.TableExprs) < 1 {
+			return nil, nil
+		}
+		tb, _ := this.getSchemaTable(stmt.TableExprs[0])
+		if tb == nil {
+			return nil, nil
+		}
+		//
+		return delete_plan.BuildDeletePlan(tb, stmt, core.App().GetRuleManager())
 	case *sqlparser.DDL:
 		glog.Info("DDL", pStmt)
 	case *sqlparser.Stream:

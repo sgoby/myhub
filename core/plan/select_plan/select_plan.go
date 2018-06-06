@@ -34,7 +34,7 @@ type selectPlanBuilder struct {
 }
 
 //
-func NewselectPlanBuilder(stmt sqlparser.Select) (*selectPlanBuilder,error) {
+func NewSelectPlanBuilder(stmt sqlparser.Select) (*selectPlanBuilder,error) {
 	var offset, rowcount int64
 	var err error
 	if stmt.Limit != nil {

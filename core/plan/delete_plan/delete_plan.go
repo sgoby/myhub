@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package update_plan
+
+package delete_plan
 
 import (
 	"github.com/sgoby/sqlparser"
@@ -25,26 +26,23 @@ import (
 	"github.com/sgoby/myhub/core/rule/result"
 )
 
-type updatePlanBuilder struct {
+type deletePlanBuilder struct {
 	plan.PlanBuilder
-	stmt *sqlparser.Update
+	stmt *sqlparser.Delete
 }
-func NewUpdatePlanBuilder(stmt sqlparser.Update)*updatePlanBuilder{
-	builder := &updatePlanBuilder{
+
+func NewDeletePlanBuilder(stmt sqlparser.Delete)*deletePlanBuilder{
+	builder := &deletePlanBuilder{
 		stmt:&stmt,
 	}
 	return builder
 }
-func BuildUpdatePlan(tb *schema.Table,stmt *sqlparser.Update,manager *rule.RuleManager) ([]plan.Plan,error){
+func BuildDeletePlan(tb *schema.Table,stmt *sqlparser.Delete,manager *rule.RuleManager) ([]plan.Plan,error){
 	if stmt == nil{
 		return nil,fmt.Errorf("stmt is nil")
 	}
-	builder := &updatePlanBuilder{
+	builder := &deletePlanBuilder{
 		stmt: stmt,
-	}
-	//
-	if builder.updateRuleKey(tb.GetRuleKey()){
-		return nil,fmt.Errorf("can't update ruleKey: %s",tb.GetRuleKey())
 	}
 	//
 	expr,isFound := builder.getWhereExprByKey(tb.GetRuleKey())
@@ -56,19 +54,10 @@ func BuildUpdatePlan(tb *schema.Table,stmt *sqlparser.Update,manager *rule.RuleM
 	if err != nil{
 		return nil,err
 	}
-	return builder.createUpdateStmt(rResults,stmt)
+	return builder.createDeleteStmt(rResults,stmt)
 }
 //
-func (this *updatePlanBuilder) updateRuleKey(ruleKey string) bool {
-	for _,expr := range this.stmt.Exprs{
-		if expr.Name.Name.String() == ruleKey{
-			return true
-		}
-	}
-	return false
-}
-//
-func (this *updatePlanBuilder) createUpdateStmt(rResults []result.RuleResult,stmt *sqlparser.Update) ([]plan.Plan,error){
+func (this *deletePlanBuilder) createDeleteStmt(rResults []result.RuleResult,stmt *sqlparser.Delete) ([]plan.Plan,error){
 	var plans []plan.Plan
 	for _,rule := range rResults{
 		mplan := plan.Plan{
@@ -84,8 +73,8 @@ func (this *updatePlanBuilder) createUpdateStmt(rResults []result.RuleResult,stm
 	return plans,nil
 }
 //
-func  (this *updatePlanBuilder) tableNameAddSuffix(stmt sqlparser.Update,dbName,tbSuffix string) sqlparser.Update{
-	nStmt := sqlparser.Update{}
+func  (this *deletePlanBuilder) tableNameAddSuffix(stmt sqlparser.Delete,dbName,tbSuffix string) sqlparser.Delete{
+	nStmt := sqlparser.Delete{}
 	nStmt = stmt
 	switch expr := nStmt.TableExprs[0].(type) {
 	case *sqlparser.AliasedTableExpr:
@@ -112,7 +101,7 @@ func  (this *updatePlanBuilder) tableNameAddSuffix(stmt sqlparser.Update,dbName,
 	return nStmt
 }
 //
-func (this *updatePlanBuilder)getWhereExprByKey(key string) (rExpr sqlparser.Expr,isFound bool){
+func (this *deletePlanBuilder)getWhereExprByKey(key string) (rExpr sqlparser.Expr,isFound bool){
 	if this.stmt.Where == nil{
 		return nil,false
 	}

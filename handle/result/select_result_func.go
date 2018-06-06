@@ -122,8 +122,8 @@ func execFuncComm(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int
 						} else if tempRow[funcIndex].IsUnsigned() {
 							tempRow[funcIndex] = sqltypes.NewUint64(uint64(tempCount))
 						} else if tempRow[funcIndex].Type() == querypb.Type_DECIMAL {
-							decStr := fmt.Sprintf("%.2f", tempCount)
-							decStr = strings.Replace(decStr, ".00", "", -1)
+							decStr := fmt.Sprintf("%f", tempCount)
+							decStr = optNumStr(decStr)
 							newV, _ := sqltypes.NewValue(querypb.Type_DECIMAL, []byte(decStr))
 							tempRow[funcIndex] = newV
 						} else {

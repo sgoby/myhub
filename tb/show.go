@@ -19,7 +19,6 @@ package tb
 import (
 	"strings"
 	"fmt"
-	"github.com/golang/glog"
 )
 
 const (
