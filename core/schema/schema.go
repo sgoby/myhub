@@ -20,14 +20,16 @@ import (
 	"github.com/sgoby/myhub/config"
 	"fmt"
 	"strings"
+	"github.com/sgoby/myhub/mysql"
 )
 
 type Schema struct {
 	databasesMap map[string]*Database
 }
 type Database struct {
-	config   config.Database
-	tableMap map[string]*Table
+	config       config.Database
+	tableMap     map[string]*Table
+	blacklistSQL []string //SQL黑名单
 }
 
 //
@@ -71,6 +73,12 @@ func newDataBase(cnf config.Database) (*Database, error) {
 		config:   cnf,
 		tableMap: make(map[string]*Table),
 	}
+	if len(cnf.BlacklistSQL) > 0{
+		blSql := strings.Replace(cnf.BlacklistSQL,"\n","",-1)
+		blSql = strings.Replace(cnf.BlacklistSQL,"\r","",-1)
+		db.blacklistSQL =strings.Split(blSql,";")
+	}
+	//
 	for _, tbCnf := range cnf.Tables {
 		tb, err := newTable(tbCnf)
 		if err != nil {
@@ -91,13 +99,25 @@ func (this *Database) Foreach(f func(string, *Table) error, errBreak bool) (err 
 	}
 	return
 }
+
+//
+func (this *Database) InBlacklistSql(query string) bool {
+	fp := mysql.GetFingerprint(query)
+	for _,bfp := range this.blacklistSQL{
+		if len(bfp) > 0 && fp == strings.ToLower(bfp){
+			return true
+		}
+	}
+	return false
+}
 //
 func (this *Database) GetTableNames() (tbNames []string) {
 	for tbName, _ := range this.tableMap {
-		tbNames = append(tbNames,tbName)
+		tbNames = append(tbNames, tbName)
 	}
 	return tbNames
 }
+
 //
 func (this *Database) GetTable(tbName string) *Table {
 	if tb, ok := this.tableMap[tbName]; ok {

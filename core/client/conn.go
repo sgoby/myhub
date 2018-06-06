@@ -235,7 +235,17 @@ func (this *Connector) GetConnectionID() int64 {
 func (this *Connector) GetRemoteAddr() net.Addr {
 	return this.MyConn.RemoteAddr()
 }
-
+//if the query in the blacklist, Myhub will refuse execute
+func (this *Connector) IsBlacklistQuery(query string) bool{
+	if core.App().GetSchema() == nil{
+		return false
+	}
+	db,err := core.App().GetSchema().GetDataBase(this.GetDB())
+	if err != nil{
+		return false
+	}
+	return db.InBlacklistSql(query)
+}
 //
 func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltypes.Result, error) {
 	rwType := node.HOST_WRITE
@@ -285,8 +295,15 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 		return sqltypes.Result{}, fmt.Errorf("Access denied for user '%s' to database '%s'", this.MyConn.User, dbName)
 	case *sqlparser.Show:
 		return this.execShowStatement(nStmt,query)
-	case *sqlparser.Update, *sqlparser.Insert, *sqlparser.Delete:
+	case *sqlparser.Update, *sqlparser.Insert:
+	case *sqlparser.Delete:
+		if nStmt.Where == nil{
+			return sqltypes.Result{}, fmt.Errorf("Myhub refused execute: %s",query)
+		}
 	case *sqlparser.DDL:
+		if nStmt.Action == sqlparser.DropStr || nStmt.Action == sqlparser.TruncateStr{
+			return sqltypes.Result{}, fmt.Errorf("Myhub refused execute: %s",query)
+		}
 		glog.Info("unKnow DDL, not support:", nStmt)
 	default: //case *sqlparser.OtherRead: //explain
 		var rs sqltypes.Result
@@ -321,6 +338,7 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 	return this.execSchemaPlans(stmt, plans, rwType)
 }
 
+//
 func (this *Connector) execShowStatement(pStmt *sqlparser.Show, query string) (rs sqltypes.Result,err error) {
 	mShow := tb.ParseShowStmt(query)
 	if mShow.ExprIsEmpty(){

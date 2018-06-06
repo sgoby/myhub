@@ -30,14 +30,16 @@ package mysql
 
 import (
 	"testing"
+	"fmt"
 )
 
 func TestFingerprintBasic(t *testing.T) {
 	var q, fp string
 
 	// A most basic case.
-	q = "SELECT c FROM t WHERE id=1"
+	q = "delete from kkk"
 	fp = "select c from a.t where id=?"
+	fmt.Println(GetFingerprint(q))
 	if GetFingerprint(q) != fp {
 		t.Fatalf("query=%s,and fingerPrint=%s\n", q, fp)
 	}

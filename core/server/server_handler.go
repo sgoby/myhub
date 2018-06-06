@@ -75,7 +75,7 @@ func (this *ServerHandler) ComQuery(conn interface{}, query string, callback fun
 	mConnector.UpActiveTime()
 	//
 	glog.Query("Query: ", query)
-	if this.isBlacklistQuery(query){
+	if mConnector.IsBlacklistQuery(query){
 		return fmt.Errorf("Myhub refused execute: %s",query)
 	}
 	//
@@ -117,10 +117,7 @@ func (this *ServerHandler) ComQuery(conn interface{}, query string, callback fun
 	return nil
 }
 
-//if the query in the blacklist, Myhub will refuse execute
-func (this *ServerHandler) isBlacklistQuery(query string) bool{
-	return false
-}
+
 
 //NewConnection is implement of IServerHandler interface on conn.go
 func (this *ServerHandler) GetConnectorMap() map[uint32]*hubclient.Connector{

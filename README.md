@@ -4,7 +4,7 @@ MyHub是一个由Go开发高性能MySQL代理中间件项目，MyHub在满足基
 MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真MySql。
 
 ### 基础功能
-- 遵守Mysql原生协议，跨语言的通用中间件代理
+- 遵守Mysql原生协议，跨语言的通用中间件代理。
 - 支持透明的MySQL连接池，不必每次新建连接。
 - 支持多个slave，slave之间通过权值进行负载均衡。
 - 支持读写分离。
@@ -13,9 +13,10 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
 - 支持到后端DB的最大连接数限制。
 - 支持SQL日志及慢日志输出。
 - 支持客户端IP白名单。
+- 支持SQL黑名单机制。
 - 支持字符集设置。
 - 支持last_insert_id功能。
-- 支持show databases,show tables
+- 支持show databases,show tables。
 
 ### 分片功能
 
@@ -149,11 +150,15 @@ MyHub 监听的host和端口,默认端口:8520
     </schema>
 
 参数说明：
-- 'name' Myhub 的数据库名
-- 'proxyDataBase' 代理的节点数据库名
-- 'ruleKey'表示表分片所依赖的字段名
-- 'rule' 分表表分片规则，参见: rules
-- 'createSql' 自动创建分表的create 语句
+- 'dataBase' 逻辑数据库
+- 'dataBase' -> 'name' Myhub 的数据库名
+- 'dataBase' -> 'proxyDataBase' 代理的节点数据库名
+- 'dataBase' -> 'blacklistSql' SQL黑名单语句，多个用";"分隔，"?"表示通配符，值是可以是SQL文件路径，
+                               也可以是SQL语句，ex: delete from user where id = ?
+- 'table' 逻辑表
+- 'table' -> 'ruleKey'表示表分片所依赖的字段名
+- 'table' -> 'rule' 分表表分片规则，参见: rules
+- 'table' -> 'createSql' 自动创建分表的create 语句，值是可以是SQL文件路径，也可以是SQL语句
 
 ### 分片规则(rule)配置:
 

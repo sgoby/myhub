@@ -8,7 +8,7 @@
 
     <logPath>logs</logPath>
     <!--  log level[debug|info|warn|error],default error  -->
-    <logLevel>warn</logLevel>
+    <logLevel>debug</logLevel>
     <!--  if set log_sql(on|off) off,the sql log will not output  -->
     <logSql>on</logSql>
     <!--  only log the query that take more than slow_log_time (ms)  -->
@@ -43,7 +43,7 @@
     </node>
     <!-- 分片后的表 -->
     <schema>
-        <dataBase name="db1" proxyDataBase="lb_ss">
+        <dataBase name="db1" proxyDataBase="lb_ss" blacklistSql="blacklist/db1.sql">
             <!--  rule: hash | range | date_month | date_day  -->
             <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="dealer_info.sql"/>
             <table name="cash_record" ruleKey="add_time" rule="rang_2" createSql="cash_record.sql"/>

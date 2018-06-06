@@ -93,6 +93,7 @@ type Database struct {
 	Tables        []Table `xml:"table"`
 	Name          string  `xml:"name,attr"`
 	ProxyDataBase string  `xml:"proxyDataBase,attr"` //可直接代理某一个数据库
+	BlacklistSQL  string  `xml:"blacklistSql,attr"`  //SQL黑名单
 }
 
 //
@@ -147,7 +148,7 @@ func ParseConfig(cnfPath string) (conf *Config, err error) {
 	}
 	//
 	defaults.SetDefaults(mConfig)
-	for i,db := range mConfig.Nodes.Databases{
+	for i, db := range mConfig.Nodes.Databases {
 		defaults.SetDefaults(&db)
 		mConfig.Nodes.Databases[i] = db
 	}
@@ -156,18 +157,18 @@ func ParseConfig(cnfPath string) (conf *Config, err error) {
 
 //optimization user's database
 func (this *Config) optUser() error {
-	for i,user := range this.Users{
-		if user.Databases == "*"{
+	for i, user := range this.Users {
+		if user.Databases == "*" {
 			var dbSlice []string
-			for _,db := range  this.Schema.Databases{
-				dbSlice = append(dbSlice,db.Name)
+			for _, db := range this.Schema.Databases {
+				dbSlice = append(dbSlice, db.Name)
 			}
-			user.Databases = strings.Join(dbSlice,",")
+			user.Databases = strings.Join(dbSlice, ",")
 		}
-		if len(user.AllowIps) < 1{
+		if len(user.AllowIps) < 1 {
 			user.AllowIps = "127.0.0.1"
 		}
-		if len(user.Charset) < 1{
+		if len(user.Charset) < 1 {
 			user.Charset = "utf-8"
 		}
 		this.Users[i] = user
@@ -179,7 +180,6 @@ func (this *Config) optUser() error {
 func (this *Config) optSchema() error {
 	for dbN, db := range this.Schema.Databases {
 		for tbN, tb := range db.Tables {
-
 			fPath, ok, err := optFilePath(tb.CreateSql)
 			if !ok {
 				continue
@@ -196,6 +196,22 @@ func (this *Config) optSchema() error {
 			//
 			db.Tables[tbN] = tb
 		}
+		if len(db.BlacklistSQL) > 0 {
+			fPath, ok, err := optFilePath(db.BlacklistSQL)
+			if !ok {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			db.BlacklistSQL = fPath
+			buf, err := ioutil.ReadFile(db.BlacklistSQL)
+			if err != nil {
+				return err
+			}
+			db.BlacklistSQL = string(buf)
+		}
+		//
 		this.Schema.Databases[dbN] = db
 	}
 	return nil
@@ -203,6 +219,9 @@ func (this *Config) optSchema() error {
 
 //
 func optFilePath(filePath string) (newFilePath string, isFilePath bool, err error) {
+	if len(filePath) < 1{
+		return filePath, false, err
+	}
 	reg, err := regexp.Compile("(^[a-zA-Z]\\:\\/|^\\.\\/|^\\/|^[a-zA-Z_])((\\w|\\/|\\.|\\-))*(\\/\\w+|\\.\\w+)$")
 	if err != nil {
 		return filePath, false, err
