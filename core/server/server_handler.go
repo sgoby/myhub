@@ -1,10 +1,26 @@
+/*
+Copyright 2018 Sgoby.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreedto in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
 	"errors"
 	"regexp"
 	"strings"
-	"sync"
+	//"sync"
 
 	"github.com/golang/glog"
 	hubclient "github.com/sgoby/myhub/core/client"
@@ -18,15 +34,15 @@ import (
 )
 
 type ServerHandler struct {
-	connectorMap map[uint32]*hubclient.Connector
-	mu           *sync.Mutex
+	connectorMap *ConnectorMap//map[uint32]*hubclient.Connector
+	//mu           *sync.Mutex
 }
 
 //
 func NewServerHandler() *ServerHandler {
 	mServerHandler := new(ServerHandler)
-	mServerHandler.connectorMap = make(map[uint32]*hubclient.Connector)
-	mServerHandler.mu = new(sync.Mutex)
+	mServerHandler.connectorMap = NewConnectorMap()//make(map[uint32]*hubclient.Connector)
+	//mServerHandler.mu = new(sync.Mutex)
 	return mServerHandler
 }
 
@@ -120,12 +136,8 @@ func (this *ServerHandler) ComQuery(conn interface{}, query string, callback fun
 
 
 //NewConnection is implement of IServerHandler interface on conn.go
-func (this *ServerHandler) GetConnectorMap() map[uint32]*hubclient.Connector{
-	tMap := make(map[uint32]*hubclient.Connector)
-	for key,val := range this.connectorMap{
-		tMap[key] = val
-	}
-	return tMap;
+func (this *ServerHandler) GetConnectorMap() []*hubclient.Connector{
+	return this.connectorMap.GetSlice()
 }
 //
 func (this *ServerHandler) comKill(query string) (rs *sqltypes.Result,err error,ok bool) {
@@ -164,14 +176,12 @@ func (this *ServerHandler) comKill(query string) (rs *sqltypes.Result,err error,
 
 //get total number of all connector
 func (this *ServerHandler) getConnectorCount() int {
-	return len(this.connectorMap)
+	return this.connectorMap.Len()
 }
 
 //
 func (this *ServerHandler) getConnector(c *mysql.Conn) *hubclient.Connector {
-	this.mu.Lock()
-	conn, ok := this.connectorMap[c.ConnectionID]
-	this.mu.Unlock()
+	conn, ok := this.connectorMap.Get(int64(c.ConnectionID))
 	if ok {
 		return conn
 	}
@@ -179,9 +189,7 @@ func (this *ServerHandler) getConnector(c *mysql.Conn) *hubclient.Connector {
 }
 //
 func (this *ServerHandler) getConnectorById(id int64) *hubclient.Connector {
-	this.mu.Lock()
-	conn, ok := this.connectorMap[uint32(id)]
-	this.mu.Unlock()
+	conn, ok := this.connectorMap.Get(id)
 	if ok {
 		return conn
 	}
@@ -193,25 +201,14 @@ func (this *ServerHandler) addConnector(c *mysql.Conn) *hubclient.Connector {
 	mConnector := hubclient.NewConnector(c)
 	mConnector.SetServerHandler(this)
 	//
-	this.mu.Lock()
-	conn, ok := this.connectorMap[c.ConnectionID]
-	this.connectorMap[c.ConnectionID] = mConnector
-	this.mu.Unlock()
-	if ok && conn != nil {
-		conn.Close()
-	}
-	//
+	this.connectorMap.Put(mConnector)
 	return mConnector
 }
 
 //delete a client connector when client closed.
 func (this *ServerHandler) delConnector(c *mysql.Conn) {
-	//
-	this.mu.Lock()
-	conn, ok := this.connectorMap[c.ConnectionID]
-	delete(this.connectorMap, c.ConnectionID)
-	this.mu.Unlock()
-	if ok && conn != nil {
+	conn := this.connectorMap.Del(int64(c.ConnectionID))
+	if conn != nil {
 		conn.Close()
 	}
 }

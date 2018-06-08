@@ -37,7 +37,7 @@ func TestFingerprintBasic(t *testing.T) {
 	var q, fp string
 
 	// A most basic case.
-	q = "delete from kkk"
+	q = "select c from a.t where id=5"
 	fp = "select c from a.t where id=?"
 	fmt.Println(GetFingerprint(q))
 	if GetFingerprint(q) != fp {

@@ -193,20 +193,34 @@ type Conn struct {
 }
 
 // bufPool is used to allocate and free buffers in an efficient way.
-var bufPool = sync.Pool{}
-
+var (
+	bufPool = sync.Pool{}
+	bufioReaderPool   = sync.Pool{
+		New: func() interface{} {
+			return bufio.NewReaderSize(nil, connBufferSize)
+		},
+	}
+	bufioWriterPool = sync.Pool{
+		New: func() interface{} {
+			return bufio.NewWriterSize(nil, connBufferSize)
+		},
+	}
+)
 // newConn is an internal method to create a Conn. Used by client and server
 // side for common creation code.
-func newConn(conn net.Conn) *Conn {
-	return &Conn{
+func newConn(conn net.Conn) (c *Conn) {
+	c = &Conn{
 		conn: conn,
 		statementId : 0,
 		statementMap: make(map[uint32]*PrepareStatement),
-		reader:   bufio.NewReaderSize(conn, connBufferSize),
-		writer:   bufio.NewWriterSize(conn, connBufferSize),
+		reader:   bufioReaderPool.Get().(*bufio.Reader),//bufio.NewReaderSize(conn, connBufferSize),
+		writer:   bufioWriterPool.Get().(*bufio.Writer),//bufio.NewWriterSize(conn, connBufferSize),
 		sequence: 0,
 		buffer:   make([]byte, connBufferSize),
 	}
+	c.reader.Reset(conn)
+	c.writer.Reset(conn)
+	return c
 }
 //
 func (c *Conn) GetDatabases()[]string{
@@ -682,9 +696,26 @@ func (c *Conn) String() string {
 
 // Close closes the connection. It can be called from a different go
 // routine to interrupt the current connection.
-func (c *Conn) Close() error{
+func (c *Conn) Close() (err error){
 	c.Closed = true
-	return c.conn.Close()
+	c.finalFlush()
+	c.buffer  = c.buffer[:0]
+	err = c.conn.Close()
+	return
+}
+
+
+func (c *Conn) finalFlush(){
+	if c.reader != nil{
+		c.reader.Reset(nil)
+		bufioReaderPool.Put(c.reader)
+		c.reader = nil
+	}
+	if c.writer != nil{
+		c.writer.Reset(nil)
+		bufioWriterPool.Put(c.writer)
+		c.writer = nil
+	}
 }
 
 // IsClosed returns true if this connection was ever closed by the

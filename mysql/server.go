@@ -23,13 +23,10 @@ import (
 	"io"
 	"net"
 	"time"
-
 	log "github.com/golang/glog"
 	"github.com/sgoby/sqlparser/sqltypes"
 	"github.com/sgoby/stats"
 	"github.com/sgoby/myhub/tb"
-	//querypb "github.com/sgoby/sqlparser/vt/proto/query"
-
 )
 
 const (
@@ -176,9 +173,6 @@ func (l *Listener) Accept() {
 // FIXME(alainjobart) handle per-connection logs in a way that makes sense.
 // FIXME(alainjobart) add an idle timeout for the connection.
 func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Time) {
-	c := newConn(conn)
-	c.ConnectionID = connectionID
-
 	// Catch panics, and close the connection in any case.
 	defer func() {
 		if x := recover(); x != nil {
@@ -186,6 +180,8 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 		}
 		conn.Close()
 	}()
+	c := newConn(conn)
+	c.ConnectionID = connectionID
 
 	// Tell the handler about the connection coming and going.
 	connInterface := l.handler.NewConnection(c)
@@ -309,10 +305,13 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 		connSlow.Add(1)
 		log.Warningf("Slow connection from %s: %v", c, connectTime)
 	}
-
+	var data []byte
 	for {
+		if len(data) > 0 {
+			data = data[:0]
+		}
 		c.sequence = 0
-		data, err := c.readEphemeralPacket()
+		data, err = c.readEphemeralPacket()
 		if err != nil {
 			// Don't log EOF errors. They cause too much spam.
 			// Note the EOF detection is not 100%
@@ -409,11 +408,11 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 			log.Info("ComStmtExecute")
 			queryStart := time.Now()
 			prepareExecute,err := c.parseComPrepareExecute(data)
+			c.recycleReadPacket()
 			if err != nil{
 				log.Error(err)
 				return
 			}
-			c.recycleReadPacket()
 			//log.Info(prepareExecute)
 			stmt,ok := c.statementMap[prepareExecute.StatementId]
 			if !ok{
@@ -487,6 +486,7 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 			log.Info("ComStmtPrepare")
 			//queryStart := time.Now()
 			_,pStmt,err := c.parseComPrepare(data)
+			c.recycleReadPacket()
 			if err != nil{
 				if werr := c.writeErrorPacketFromError(err); werr != nil {
 					// If we can't even write the error, we're done.
@@ -494,7 +494,6 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 					return
 				}
 			}
-			c.recycleReadPacket()
 			//
 			c.statementId ++
 			pStmt.Id = c.statementId
@@ -513,6 +512,7 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 			//timings.Record(queryTimingKey, queryStart)
 		case ComStmtSendLongData:
 			log.Info("ComStmtSendLongData")
+			c.recycleReadPacket()
 		case ComStmtClose:
 			log.Info("ComStmtClose")
 			stmtId,_,_ := readUint32(data,0)

@@ -103,9 +103,9 @@ func (this *Connector) showProcesslist(pStmt *sqlparser.Show, query string) (rs 
 	if this.serverHandler == nil {
 		return rs, nil, true;
 	}
-	for id, c := range this.serverHandler.GetConnectorMap() {
+	for _, c := range this.serverHandler.GetConnectorMap() {
 		idleTime := time.Now().Unix() - c.GetLastActiveTime().Unix()
-		resultRows.AddRow(id, c.GetUser(), c.GetRemoteAddr().String(), c.GetDB(), "Sleep", idleTime, "", "")
+		resultRows.AddRow(c.GetConnectionID(), c.GetUser(), c.GetRemoteAddr().String(), c.GetDB(), "Sleep", idleTime, "", "")
 	}
 	//
 	rs = *(resultRows.ToResult())

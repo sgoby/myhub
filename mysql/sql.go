@@ -310,10 +310,11 @@ func (this *Client) query(ctx context.Context, query string, args []interface{},
 	}()
 	rs := sqltypes.Result{}
 	withLock(dc, func() {
-		result,err :=  dc.ci.ExecuteFetch(query,0,false)
-		if err == nil{
+		result,ExecuErr :=  dc.ci.ExecuteFetch(query,0,false)
+		if ExecuErr == nil{
 			rs = *result
 		}
+		err = ExecuErr
 	})
 	return rs,err
 }

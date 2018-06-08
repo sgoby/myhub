@@ -43,10 +43,9 @@ import (
 const (
 	EXECUTE_TIMEOUT = 30 // the timeout of total execute
 )
-
 //
 type IServerHandler interface {
-	GetConnectorMap() map[uint32]*Connector
+	GetConnectorMap() []*Connector
 }
 
 //
@@ -62,6 +61,7 @@ type Connector struct {
 	extStmtQuerys  []func(pStmt sqlparser.Statement, query string) (rs sqltypes.Result, err error, ok bool)
 	lastInsertId   uint64 //LAST_INSERT_ID
 	serverHandler  IServerHandler
+	execFuncMap    map[string]execFunc
 }
 
 //just used for sys auto create table

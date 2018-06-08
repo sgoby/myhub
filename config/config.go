@@ -28,10 +28,11 @@ import (
 )
 
 type Config struct {
-	ServeListen   string `xml:"serveListen" default:"0.0.0.0:8520"`
-	ServeUser     string `xml:"serveUser"`
-	ServePassword string `xml:"servePassword"`
-	ServeCharset  string `xml:"serveCharset"`
+	ServeListen     string `xml:"serveListen" default:"0.0.0.0:8520"`
+	ServeUser       string `xml:"serveUser"`
+	ServePassword   string `xml:"servePassword"`
+	ServeCharset    string `xml:"serveCharset"`
+	WorkerProcesses int    `xml:"workerProcesses"`
 	//
 	WebListen   string `xml:"webListen"`
 	WebUser     string `xml:"webUser"`
@@ -219,7 +220,7 @@ func (this *Config) optSchema() error {
 
 //
 func optFilePath(filePath string) (newFilePath string, isFilePath bool, err error) {
-	if len(filePath) < 1{
+	if len(filePath) < 1 {
 		return filePath, false, err
 	}
 	reg, err := regexp.Compile("(^[a-zA-Z]\\:\\/|^\\.\\/|^\\/|^[a-zA-Z_])((\\w|\\/|\\.|\\-))*(\\/\\w+|\\.\\w+)$")

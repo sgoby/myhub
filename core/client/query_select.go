@@ -23,7 +23,7 @@ import (
 	"github.com/sgoby/sqlparser"
 	"github.com/sgoby/myhub/mysql"
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
-	"github.com/kataras/iris/core/errors"
+	"errors"
 	"strconv"
 	"time"
 	"strings"
@@ -136,18 +136,20 @@ func (this *Connector) queryExpr(pExpr sqlparser.Expr) (pType querypb.Type, val 
 		glog.Info(expr, "CollateExpr")
 	case *sqlparser.FuncExpr:
 		glog.Info(expr, "FuncExpr")
-		var execFuncMap = map[string]execFunc{
-			FUNC_VERSION:        this.funcVersion,
-			FUNC_LAST_INSERT_ID: this.funcLastInsertId,
-			FUNC_MAX:            this.funcMinMaxAvg,
-			FUNC_MIN:            this.funcMinMaxAvg,
-			FUNC_AVG:            this.funcMinMaxAvg,
-			FUNC_NOW:            this.funcNow,
-			FUNC_CURDATE:        this.funcCurDate,
-			FUNC_CURTIME:        this.funcCurTime,
-			FUNC_DATABASE:       this.funcDatabase,
+		if this.execFuncMap == nil{
+			this.execFuncMap = map[string]execFunc{
+				FUNC_VERSION:        this.funcVersion,
+				FUNC_LAST_INSERT_ID: this.funcLastInsertId,
+				FUNC_MAX:            this.funcMinMaxAvg,
+				FUNC_MIN:            this.funcMinMaxAvg,
+				FUNC_AVG:            this.funcMinMaxAvg,
+				FUNC_NOW:            this.funcNow,
+				FUNC_CURDATE:        this.funcCurDate,
+				FUNC_CURTIME:        this.funcCurTime,
+				FUNC_DATABASE:       this.funcDatabase,
+			}
 		}
-		if f, ok := execFuncMap[expr.Name.Lowered()]; ok {
+		if f, ok := this.execFuncMap[expr.Name.Lowered()]; ok {
 			return f(expr)
 		}
 	case *sqlparser.CaseExpr:

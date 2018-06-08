@@ -102,6 +102,12 @@ func (this *Database) Foreach(f func(string, *Table) error, errBreak bool) (err 
 
 //
 func (this *Database) InBlacklistSql(query string) bool {
+	if len(this.blacklistSQL) < 1{
+		return false
+	}
+	query = strings.Replace(query,"`","",-1)
+	query = strings.Replace(query, "\n", "", -1)
+	query = strings.Replace(query, "\r", "", -1)
 	fp := mysql.GetFingerprint(query)
 	for _,bfp := range this.blacklistSQL{
 		if len(bfp) > 0 && fp == strings.ToLower(bfp){
