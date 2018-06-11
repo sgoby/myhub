@@ -38,6 +38,9 @@ func (this *Rows) ToResult() *sqltypes.Result{
 		Fields:this.fields,
 		Rows:this.rows,
 		RowsAffected:uint64(len(this.rows)),
+		Extras:&querypb.ResultExtras{
+			EventToken:&querypb.EventToken{},
+		},
 	}
 }
 //

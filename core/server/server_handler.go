@@ -90,6 +90,7 @@ func (this *ServerHandler) ComQuery(conn interface{}, query string, callback fun
 	}
 	mConnector.UpActiveTime()
 	//
+	query = strings.TrimSpace(query)
 	glog.Query("Query: ", query)
 	if mConnector.IsBlacklistQuery(query){
 		return fmt.Errorf("Myhub refused execute: %s",query)

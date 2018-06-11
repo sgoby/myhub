@@ -119,6 +119,10 @@ func (this *Connector) queryExpr(pExpr sqlparser.Expr) (pType querypb.Type, val 
 		glog.Info(expr, "BoolVal")
 	case *sqlparser.ColName:
 		glog.Info(expr, "ColName")
+		colName := expr.Name.String()
+		if strings.Index(colName,"max_allowed_packet") >= 0{
+			return 	querypb.Type_INT64,4194304,nil
+		}
 		return querypb.Type_NULL_TYPE, nil, fmt.Errorf("Unknown column '%s' in 'field list'", expr.Name.String())
 	case sqlparser.ValTuple:
 		glog.Info(expr, "ValTuple")
@@ -195,6 +199,10 @@ func (this *Connector) funcCurTime(funExpr *sqlparser.FuncExpr) (pType querypb.T
 	return querypb.Type_VARCHAR, time.Now().Format("15:04:05"), nil
 }
 func (this *Connector) funcDatabase(funExpr *sqlparser.FuncExpr) (pType querypb.Type, val interface{}, err error) {
+	dbName := this.GetDB()
+	if len(dbName) < 1{
+		return querypb.Type_NULL_TYPE, nil, nil
+	}
 	return querypb.Type_VARCHAR, this.GetDB(), nil
 }
 func (this *Connector) funcVersion(funExpr *sqlparser.FuncExpr) (pType querypb.Type, val interface{}, err error) {
