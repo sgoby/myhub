@@ -65,9 +65,12 @@ func (this *AuthServerMy)ValidateHash(salt []byte, user string, authResponse []b
 		return &MyUserData{userName:user}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
 	}
 	for _, entry := range entries {
+		//fmt.Println("ValidateHash",entry,remoteAddr)
+		if this.matchSourceHost(remoteAddr, entry.SourceHosts) && len(entry.Password) < 1{
+			return &MyUserData{userName:user,databases:entry.Databases}, nil
+		}
 		computedAuthResponse := scramblePassword(salt, []byte(entry.Password))
 		// Validate the password.
-		//fmt.Println(remoteAddr,entry.SourceHost)
 		if this.matchSourceHost(remoteAddr, entry.SourceHosts) && bytes.Compare(authResponse, computedAuthResponse) == 0 {
 			return &MyUserData{userName:user,databases:entry.Databases}, nil
 		}
@@ -94,6 +97,7 @@ func (this *AuthServerMy)Negotiate(c *Conn, user string, remoteAddr net.Addr) (G
 		return &MyUserData{userName:user}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
 	}
 	for _, entry := range entries {
+		//fmt.Println("Negotiate",entry)
 		// Validate the password.
 		if this.matchSourceHost(remoteAddr, entry.SourceHosts) && entry.Password == password {
 			return &MyUserData{userName:user,databases:entry.Databases}, nil
@@ -111,6 +115,9 @@ func (this *AuthServerMy)matchSourceHost(remoteAddr net.Addr, targetSourceHost [
 		return true
 	case *net.TCPAddr:
 		currentIp := rAddr.IP.String()
+		if currentIp == "::1"{
+			currentIp = "localhost"
+		}
 		for _,sourceHost := range targetSourceHost{
 			if sourceHost == "*" || sourceHost == "%"{
 				return true

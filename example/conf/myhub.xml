@@ -24,7 +24,8 @@
 
     <node>
         <hosts>
-            <host type="write" name="host_1" address="127.0.0.1:3306" user="root" password="123456">
+            <host type="write" name="host_1" address="192.168.118.128:13307" user="root" password="123456">
+                <host type="write" name="host_1_1" address="192.168.118.128:13308" user="root" password="123456"/>
                 <!--
                 <host type="read" name="host_1_1"  address = "192.168.31.231:3306" user = "root" password = "123456" weight="1"/>
                 <host type="read" name="node1_1"  address = "" user = "" password = "" weight="1"/>
@@ -37,7 +38,7 @@
             <dataBase name="test" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
             <dataBase name="shard_01" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
             <dataBase name="shard_02" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
-            <dataBase name="lb_ss" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+            <dataBase name="lb_ss" host="host_2" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
             <dataBase name="lb_livegame" host="host_2" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
         </dataBases>
     </node>

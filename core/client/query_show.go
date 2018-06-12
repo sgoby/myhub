@@ -289,6 +289,13 @@ func (this *Connector) showDatebases(pStmt *sqlparser.Show, query string) (rs sq
 	//
 	dbs := this.MyConn.GetDatabases()
 	for _, dbName := range dbs {
+		if dbName == "*" && core.App().GetSchema() != nil{
+			nemes := core.App().GetSchema().GetDataBaseNames();
+			for _,n := range nemes{
+				resultRows.AddRow(n)
+			}
+			break
+		}
 		resultRows.AddRow(dbName)
 	}
 	//

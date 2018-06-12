@@ -50,6 +50,13 @@ func NewSchema(cnf config.Schema) (*Schema, error) {
 }
 
 //===============================================================
+func (this *Schema) GetDataBaseNames() ([]string) {
+	var names []string
+	for key,_ := range this.databasesMap{
+		names = append(names,key)
+	}
+	return names
+}
 func (this *Schema) GetDataBase(name string) (*Database, error) {
 	key := strings.TrimSpace(name)
 	if db, ok := this.databasesMap[key]; ok {
