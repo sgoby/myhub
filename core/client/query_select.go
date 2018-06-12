@@ -123,6 +123,9 @@ func (this *Connector) queryExpr(pExpr sqlparser.Expr) (pType querypb.Type, val 
 		if strings.Index(colName,"max_allowed_packet") >= 0{
 			return 	querypb.Type_INT64,4194304,nil
 		}
+		if strings.Index(colName,"version_comment") >= 0{
+			return 	querypb.Type_VARCHAR,"MyHub Server (Apache)",nil
+		}
 		return querypb.Type_NULL_TYPE, nil, fmt.Errorf("Unknown column '%s' in 'field list'", expr.Name.String())
 	case sqlparser.ValTuple:
 		glog.Info(expr, "ValTuple")
