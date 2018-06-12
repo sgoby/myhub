@@ -19,7 +19,6 @@ package client
 import (
 	"fmt"
 	"strings"
-	"github.com/golang/glog"
 	"github.com/sgoby/sqlparser/sqltypes"
 	"github.com/sgoby/sqlparser"
 	"github.com/sgoby/myhub/mysql"
@@ -94,9 +93,23 @@ func (this *Connector) describe(pStmt sqlparser.Statement,query string)(rs sqlty
 		if column.Type.Autoincrement{
 			Extra = "auto_increment"
 		}
-		Key := fmt.Sprintf("%d",column.Type.KeyOpt)
-		if column.Type.KeyOpt == 1 {
-			Key = "PRI"
+		//
+		var Key string
+		for _, index := range createStmt.TableSpec.Indexes {
+			if index.Columns != nil{
+				for _,col := range index.Columns {
+					if !col.Column.IsEmpty() && column.Name.String() == col.Column.String(){
+						//glog.Info(index.Info.Type)
+						if index.Info.Primary{
+							Key = "PRI"
+						}else if index.Info.Unique{
+							Key = "UNI"
+						}else{
+							Key = "MUL"
+						}
+					}
+				}
+			}
 		}
 		//
 		mType := column.Type.Type
@@ -104,7 +117,7 @@ func (this *Connector) describe(pStmt sqlparser.Statement,query string)(rs sqlty
 			lenBuf := sqlparser.NewTrackedBuffer(nil)
 			column.Type.Length.Format(lenBuf)
 			mType += fmt.Sprintf("(%s)",lenBuf.String())
-			glog.Info(mType)
+			//glog.Info(mType)
 		}
 		resultRows.AddRow(column.Name.String(),mType,Null,
 			Key,valDefault,Extra)

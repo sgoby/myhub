@@ -190,8 +190,9 @@ func (this *Connector) showKeys(pStmt *sqlparser.Show, query string) (rs sqltype
 	resultRows.AddField("Index_type", querypb.Type_VARCHAR)
 	resultRows.AddField("Comment", querypb.Type_VARCHAR)
 	resultRows.AddField("Index_comment", querypb.Type_VARCHAR)
+	//
 	for _, index := range createStmt.TableSpec.Indexes {
-		glog.Info(index)
+		glog.Infof("%v",index.Columns)
 	}
 	rs = *resultRows.ToResult()
 	return rs, nil, true;
