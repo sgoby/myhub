@@ -38,10 +38,8 @@ var appConf *config.Config
 
 func init() {
 	var err error;
-	//conf/myhub.xml
 	configFilePath := flag.String("cnf", "conf/myhub.xml", "setting config file")
 	flag.Parse()
-	fmt.Println(*configFilePath)
 	appConf, err = config.ParseConfig(*configFilePath)
 	if err != nil {
 		fmt.Println(err)

@@ -408,18 +408,6 @@ type LogConfig struct {
 }
 
 func InitWithCnf(cnf LogConfig) {
-	/*
-	flag.BoolVar(&logging.toStderr, "logtostderr", false, "log to standard error instead of files")
-	flag.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as files")
-	flag.Var(&logging.verbosity, "v", "log level for V logs")
-	flag.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
-	flag.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
-	flag.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
-	//
-	flag.BoolVar(&logging.slow, "slow", false, "slow log")
-	flag.BoolVar(&logging.query, "query", false, "query log, just use for query sql")
-	flag.IntVar(&logging.defaultLV, "lv", 0, "glog level for default")
-	*/
 	logging.slow = cnf.Slow
 	logging.alsoToStderr = cnf.AlsoToStderr
 	logging.query = cnf.Query
@@ -595,33 +583,7 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 		s = infoLog // for safety.
 	}
 	buf := l.getBuffer()
-
-	// Avoid Fprintf, for speed. The format is so simple that we can do it quickly by hand.
-	// It's worth about 3X. Fprintf is hard.
-	_, month, day := now.Date()
-	hour, minute, second := now.Clock()
-	// Lmmdd hh:mm:ss.uuuuuu threadid file:line]
-	buf.tmp[0] = severityChar[s]
-	buf.twoDigits(1, int(month))
-	buf.twoDigits(3, day)
-	buf.tmp[5] = ' '
-	buf.twoDigits(6, hour)
-	buf.tmp[8] = ':'
-	buf.twoDigits(9, minute)
-	buf.tmp[11] = ':'
-	buf.twoDigits(12, second)
-	buf.tmp[14] = '.'
-	buf.nDigits(6, 15, now.Nanosecond()/1000, '0')
-	buf.tmp[21] = ' '
-	buf.nDigits(7, 22, pid, ' ') // TODO: should be TID
-	buf.tmp[29] = ' '
-	buf.Write(buf.tmp[:30])
-	buf.WriteString(file)
-	buf.tmp[0] = ':'
-	n := buf.someDigits(1, line)
-	buf.tmp[n+1] = ']'
-	buf.tmp[n+2] = ' '
-	buf.Write(buf.tmp[:n+3])
+	buf.WriteString(fmt.Sprintf("[%c %s %d %s %d] ",severityChar[s],now.Format("2006-01-02 15:04:05.999999999"),pid,file,line))
 	return buf
 }
 
@@ -733,13 +695,13 @@ func (l *loggingT) output(s severity, buf *buffer, file string, line int, alsoTo
 		switch s {
 		case fatalLog:
 			l.file[fatalLog].Write(data)
-			fallthrough
+			//fallthrough
 		case errorLog:
 			l.file[errorLog].Write(data)
-			fallthrough
+			//fallthrough
 		case warningLog:
 			l.file[warningLog].Write(data)
-			fallthrough
+			//fallthrough
 		case infoLog:
 			l.file[infoLog].Write(data)
 		case queryLog:
@@ -880,18 +842,8 @@ func (sb *syncBuffer) rotateFile(now time.Time) error {
 	if err != nil {
 		return err
 	}
-
 	sb.Writer = bufio.NewWriterSize(sb.file, bufferSize)
-
-	// Write header.
-	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "Log file created at: %s\n", now.Format("2006/01/02 15:04:05"))
-	fmt.Fprintf(&buf, "Running on machine: %s\n", host)
-	fmt.Fprintf(&buf, "Binary: Built with %s %s for %s/%s\n", runtime.Compiler, runtime.Version(), runtime.GOOS, runtime.GOARCH)
-	fmt.Fprintf(&buf, "Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg\n")
-	n, err := sb.file.Write(buf.Bytes())
-	sb.nbytes += uint64(n)
-	return err
+	return nil
 }
 
 // bufferSize sizes the buffer associated with each log file. It's large
@@ -905,16 +857,14 @@ func (l *loggingT) createFiles(sev severity) error {
 	now := time.Now()
 	// Files are created in decreasing severity order, so as soon as we find one
 	// has already been created, we can stop.
-	for s := sev; s >= infoLog && l.file[s] == nil; s-- {
-		sb := &syncBuffer{
-			logger: l,
-			sev:    s,
-		}
-		if err := sb.rotateFile(now); err != nil {
-			return err
-		}
-		l.file[s] = sb
+	sb := &syncBuffer{
+		logger: l,
+		sev:    sev,
 	}
+	if err := sb.rotateFile(now); err != nil {
+		return err
+	}
+	l.file[sev] = sb
 	return nil
 }
 

@@ -19,7 +19,6 @@ package mysql
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -31,8 +30,8 @@ import (
 )
 
 var (
-	mysqlAuthServerStaticFile   = flag.String("mysql_auth_server_static_file", "", "JSON File to read the users/passwords from.")
-	mysqlAuthServerStaticString = flag.String("mysql_auth_server_static_string", "", "JSON representation of the users/passwords config.")
+	mysqlAuthServerStaticFile   *string //flag.String("mysql_auth_server_static_file", "", "JSON File to read the users/passwords from.")
+	mysqlAuthServerStaticString *string //flag.String("mysql_auth_server_static_string", "", "JSON representation of the users/passwords config.")
 )
 
 const (
