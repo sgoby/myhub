@@ -41,10 +41,11 @@ const (
 
 var (
 	// Metrics
-	timings    = stats.NewTimings("MysqlServerTimings")
-	connCount  = stats.NewInt("MysqlServerConnCount")
-	connAccept = stats.NewInt("MysqlServerConnAccepted")
-	connSlow   = stats.NewInt("MysqlServerConnSlow")
+	timings              = stats.NewTimings("MysqlServerTimings")
+	connCount            = stats.NewInt("MysqlServerConnCount")
+	connAccept           = stats.NewInt("MysqlServerConnAccepted")
+	connSlow             = stats.NewInt("MysqlServerConnSlow")
+	maxConnections int64 = 20000
 )
 
 // A Handler is an interface used by Listener to send queries.
@@ -121,6 +122,12 @@ type Listener struct {
 	connectionID uint32
 }
 
+//
+func SetMaxConnections(v int64){
+	if v > 0{
+		maxConnections = v
+	}
+}
 // NewFromListener creares a new mysql listener from an existing net.Listener
 func NewFromListener(l net.Listener, authServer AuthServer, handler Handler) (*Listener, error) {
 	return &Listener{
@@ -189,6 +196,14 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 
 	// Adjust the count of open connections
 	defer connCount.Add(-1)
+
+	//max connections
+	if connCount.Get() >= maxConnections {
+		if err := c.writeErrorPacket(ERConCount, "08004", "Too many connections"); err != nil {
+			log.Errorf("Error writing error packet to %s: %s", c, err)
+		}
+		return
+	}
 
 	// First build and send the server handshake packet.
 	salt, err := c.writeHandshakeV10(l.ServerVersion, l.authServer, l.TLSConfig != nil)
@@ -395,7 +410,7 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 					return
 				}
 			}
-			l.handler.QueryTimeRecord(query,queryStart)
+			l.handler.QueryTimeRecord(query, queryStart)
 			timings.Record(queryTimingKey, queryStart)
 		case ComPing:
 			// No payload to that one, just return OKPacket.
@@ -407,25 +422,25 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 		case ComStmtExecute:
 			log.Info("ComStmtExecute")
 			queryStart := time.Now()
-			prepareExecute,err := c.parseComPrepareExecute(data)
+			prepareExecute, err := c.parseComPrepareExecute(data)
 			c.recycleReadPacket()
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 				return
 			}
 			//log.Info(prepareExecute)
-			stmt,ok := c.statementMap[prepareExecute.StatementId]
-			if !ok{
+			stmt, ok := c.statementMap[prepareExecute.StatementId]
+			if !ok {
 				log.Errorf("Error no prepare statement can use %s", c)
 				return
 			}
-			query,err := stmt.bindParams(prepareExecute.ParamValues)
-			if err != nil{
+			query, err := stmt.bindParams(prepareExecute.ParamValues)
+			if err != nil {
 				log.Errorf("Error prepare bind params %s: %v", c, err)
 				return
 			}
 			//
-			log.Query("Query: ",query)
+			log.Query("Query: ", query)
 			//
 			fieldSent := false
 			// sendFinished is set if the response should just be an OK packet.
@@ -480,14 +495,14 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 					return
 				}
 			}
-			l.handler.QueryTimeRecord(query,queryStart)
+			l.handler.QueryTimeRecord(query, queryStart)
 			timings.Record(queryTimingKey, queryStart)
 		case ComStmtPrepare:
 			log.Info("ComStmtPrepare")
 			//queryStart := time.Now()
-			_,pStmt,err := c.parseComPrepare(data)
+			_, pStmt, err := c.parseComPrepare(data)
 			c.recycleReadPacket()
-			if err != nil{
+			if err != nil {
 				if werr := c.writeErrorPacketFromError(err); werr != nil {
 					// If we can't even write the error, we're done.
 					log.Errorf("Error writing prepare error to %s: %v", c, werr)
@@ -504,7 +519,7 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 				log.Errorf("Error writing ComPrepare result to %s: %v", c, err)
 				return
 			}
-			if err := c.writeEndPrepare();err != nil{
+			if err := c.writeEndPrepare(); err != nil {
 				log.Errorf("Error writing prepare to %s: %v", c, err)
 				return
 			}
@@ -515,10 +530,10 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 			c.recycleReadPacket()
 		case ComStmtClose:
 			log.Info("ComStmtClose")
-			stmtId,_,_ := readUint32(data,0)
+			stmtId, _, _ := readUint32(data, 0)
 			c.recycleReadPacket()
-			if stmtId > 0{
-				delete(c.statementMap,stmtId)
+			if stmtId > 0 {
+				delete(c.statementMap, stmtId)
 			}
 		case ComStmtReset:
 			log.Info("ComStmtReset")
@@ -530,7 +545,7 @@ func (l *Listener) handle(conn net.Conn, connectionID uint32, acceptTime time.Ti
 			log.Info("ComStmtFetch")
 			c.recycleReadPacket()
 		default:
-			log.Errorf("Got unhandled packet from %s, returning error:%s, %v", c,data, data)
+			log.Errorf("Got unhandled packet from %s, returning error:%s, %v", c, data, data)
 			c.recycleReadPacket()
 			if err := c.writeErrorPacket(ERUnknownComError, SSUnknownComError, "command handling not implemented yet: %v", data[0]); err != nil {
 				log.Errorf("Error writing error packet to %s: %s", c, err)

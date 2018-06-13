@@ -114,6 +114,10 @@ func (this *Application) LoadConfig(cnf config.Config) (err error){
 }
 //
 func (this *Application) Run(sh mysql.Handler) (err error) {
+	if this.config.MaxConnections > 0{
+		mysql.SetMaxConnections(int64(this.config.MaxConnections))
+	}
+	//
 	this.listener, err = mysql.NewListener("tcp", this.config.ServeListen, this.authServer, sh)
 	if err != nil {
 		return err

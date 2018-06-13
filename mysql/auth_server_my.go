@@ -75,9 +75,7 @@ func (this *AuthServerMy)ValidateHash(salt []byte, user string, authResponse []b
 			return &MyUserData{userName:user,databases:entry.Databases}, nil
 		}
 	}
-	return &MyUserData{userName:user}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
-
-	return nil,nil
+	return &MyUserData{userName:user}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v' %v", user,remoteAddr)
 }
 
 // Negotiate is part of the AuthServer interface.
@@ -122,6 +120,8 @@ func (this *AuthServerMy)matchSourceHost(remoteAddr net.Addr, targetSourceHost [
 			if sourceHost == "*" || sourceHost == "%"{
 				return true
 			}else if sourceHost == currentIp{
+				return true
+			}else if "127.0.0.1" == currentIp && sourceHost == "localhost"{
 				return true
 			}
 		}

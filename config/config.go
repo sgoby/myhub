@@ -33,6 +33,7 @@ type Config struct {
 	ServePassword   string `xml:"servePassword"`
 	ServeCharset    string `xml:"serveCharset"`
 	WorkerProcesses int    `xml:"workerProcesses"`
+	MaxConnections  int    `xml:"maxConnections" default:"2048"`
 	//
 	WebListen   string `xml:"webListen"`
 	WebUser     string `xml:"webUser"`
@@ -56,10 +57,10 @@ type User struct {
 	Name      string `xml:"name,attr"`
 	Password  string `xml:"passwrod,attr"`
 	Charset   string `xml:"charset,attr"`
-	Databases string `xml:"db,attr"` //Multiple configurations join with ","
-	AllowIps  string `xml:"ip,attr"` //Multiple configurations join with ","
+	Databases string `xml:"db,attr"`        //Multiple configurations join with ","
+	AllowIps  string `xml:"ip,attr"`        //Multiple configurations join with ","
 	Privilege string `xml:"privilege,attr"` //ex: select,update,delete. Multiple configurations join with ","
-	Tables    string `xml:"table,attr"` //Multiple configurations join with ","
+	Tables    string `xml:"table,attr"`     //Multiple configurations join with ","
 }
 
 //
@@ -125,7 +126,7 @@ type Rule struct {
 var confDir string
 //
 func ParseConfig(cnfPath string) (conf *Config, err error) {
-	if len(cnfPath) < 1{
+	if len(cnfPath) < 1 {
 		conf = creatDefaultConfig()
 		return
 	}
@@ -162,14 +163,14 @@ func ParseConfig(cnfPath string) (conf *Config, err error) {
 }
 
 //
-func creatDefaultConfig() *Config{
+func creatDefaultConfig() *Config {
 	cnf := new(Config)
 	cnf.AddUser(User{
-		Name:"root",
-		Password:"",
-		Databases:"*",
-		AllowIps:"localhost",
-		Charset:"utf-8",
+		Name:      "root",
+		Password:  "",
+		Databases: "*",
+		AllowIps:  "localhost",
+		Charset:   "utf-8",
 	})
 	defaults.SetDefaults(cnf)
 	return cnf
@@ -177,7 +178,7 @@ func creatDefaultConfig() *Config{
 
 //
 func (this *Config) AddUser(u User) {
-	this.Users = append(this.Users,u)
+	this.Users = append(this.Users, u)
 }
 
 //optimization user's database
