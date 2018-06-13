@@ -28,20 +28,24 @@ import (
 	"strings"
 	"os"
 	"os/signal"
+	 _"net/http/pprof"
+	"runtime/pprof"
 	"syscall"
+	"net/http"
 )
 
 var appConf *config.Config
 
 func init() {
 	var err error;
+	//conf/myhub.xml
 	configFilePath := flag.String("cnf", "conf/myhub.xml", "setting config file")
 	appConf, err = config.ParseConfig(*configFilePath)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	err = os.MkdirAll(appConf.LogPath,os.ModeDir)
+	err = os.MkdirAll(appConf.LogPath, os.ModeDir)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
@@ -65,17 +69,24 @@ func init() {
 	}
 	if lv > 0 {
 		flag.Set("lv", fmt.Sprintf("%d", lv))
-	}else{
+	} else {
 		flag.Set("alsologtostderr", "true")
 	}
 	flag.Parse()
+	//
+	//runtime.MemProfileRate = 1
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
 	if err := core.App().LoadConfig(*appConf); err != nil {
 		glog.Exit(err)
 		return
+	}
+	//debug.SetGCPercent(5)
+	if appConf.WorkerProcesses > 0 {
+		runtime.GOMAXPROCS(appConf.WorkerProcesses)
+	} else {
+		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 	//
 	c := client.NewDefaultConnector()
@@ -83,6 +94,9 @@ func main() {
 		glog.Exit(err)
 		return
 	}
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
 	//
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc,
@@ -96,6 +110,7 @@ func main() {
 		for {
 			sig := <-sc
 			if sig == syscall.SIGINT || sig == syscall.SIGTERM || sig == syscall.SIGQUIT {
+				//saveHeapProfile();
 				glog.Flush()
 				core.App().Close()
 				glog.Exit("MyHub close ...")
@@ -107,4 +122,14 @@ func main() {
 	//
 	serverHandle := server.NewServerHandler()
 	core.App().Run(serverHandle)
+}
+
+func saveHeapProfile() {
+	//runtime.GC()
+	f, err := os.OpenFile("myhub.prof", os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	pprof.Lookup("heap").WriteTo(f, 1)
 }

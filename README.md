@@ -43,7 +43,7 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
         export GOPATH=$dir
         echo $GOPATH
         git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
-        go build -o bin/myhub src/github.com/sgoby/myhub/main.go
+        go build -o bin/myhub src/github.com/sgoby/myhub/cmd/myhub/main.go
         echo Congratulations. Build success!
 
 - Windows 上安装(build_windows.bat)
@@ -51,7 +51,7 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
         git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
         set dir=%cd%
         set GOPATH=%GOPATH%;%dir%
-        go build -o bin/myhub.exe src/github.com/sgoby/myhub/main.go
+        go build -o bin/myhub.exe src/github.com/sgoby/myhub/cmd/myhub/main.go
         echo Congratulations. Build success!
 
 
