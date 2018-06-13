@@ -25,13 +25,13 @@ import (
 	"github.com/sgoby/myhub/core/client"
 	"github.com/golang/glog"
 	"fmt"
-	"strings"
 	"os"
 	"os/signal"
 	 _"net/http/pprof"
 	"runtime/pprof"
 	"syscall"
 	"net/http"
+	"strings"
 )
 
 var appConf *config.Config
@@ -40,6 +40,8 @@ func init() {
 	var err error;
 	//conf/myhub.xml
 	configFilePath := flag.String("cnf", "conf/myhub.xml", "setting config file")
+	flag.Parse()
+	fmt.Println(*configFilePath)
 	appConf, err = config.ParseConfig(*configFilePath)
 	if err != nil {
 		fmt.Println(err)
@@ -50,29 +52,16 @@ func init() {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	flag.Set("log_dir", appConf.LogPath)
+	logCnf := glog.LogConfig{}
+	logCnf.LogDir = appConf.LogPath
 	if strings.ToLower(appConf.LogSql) == "on" {
-		flag.Set("query", "true")
+		logCnf.Query = true
 	}
 	if appConf.SlowLogTime > 0 {
-		flag.Set("slow", "true")
+		logCnf.Slow = true
 	}
-	//
-	lv := 5
-	switch strings.ToLower(appConf.LogLevel) {
-	case "debug", "info":
-		lv = 0
-	case "warn":
-		lv = 1
-	case "error":
-		lv = 2
-	}
-	if lv > 0 {
-		flag.Set("lv", fmt.Sprintf("%d", lv))
-	} else {
-		flag.Set("alsologtostderr", "true")
-	}
-	flag.Parse()
+	logCnf.DefaultLV = appConf.LogLevel
+	glog.InitWithCnf(logCnf)
 	//
 	//runtime.MemProfileRate = 1
 }

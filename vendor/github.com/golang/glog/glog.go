@@ -98,14 +98,13 @@ type severity int32 // sync/atomic int32
 // A message written to a high-severity log file is also written to each
 // lower-severity log file.
 const (
-	infoLog severity = iota
+	infoLog     severity = iota
 	warningLog
 	errorLog
 	queryLog
 	slowLog
 	fatalLog
 	numSeverity = 6
-
 )
 
 const severityChar = "IWEQSF"
@@ -115,9 +114,8 @@ var severityName = []string{
 	warningLog: "WARNING",
 	errorLog:   "ERROR",
 	queryLog:   "QUERY",
-	slowLog:   "SLOW",
+	slowLog:    "SLOW",
 	fatalLog:   "FATAL",
-
 }
 
 // get returns the value of the severity.
@@ -401,7 +399,16 @@ type flushSyncWriter interface {
 	io.Writer
 }
 
-func init() {
+type LogConfig struct {
+	AlsoToStderr bool
+	Slow         bool
+	Query        bool
+	DefaultLV    string
+	LogDir       string
+}
+
+func InitWithCnf(cnf LogConfig) {
+	/*
 	flag.BoolVar(&logging.toStderr, "logtostderr", false, "log to standard error instead of files")
 	flag.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as files")
 	flag.Var(&logging.verbosity, "v", "log level for V logs")
@@ -409,10 +416,28 @@ func init() {
 	flag.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
 	flag.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
 	//
-	flag.BoolVar(&logging.slow, "slow", false ,"slow log")
-	flag.BoolVar(&logging.query, "query",false, "query log, just use for query sql")
-	flag.IntVar(&logging.defaultLV, "lv", 0,"glog level for default")
-
+	flag.BoolVar(&logging.slow, "slow", false, "slow log")
+	flag.BoolVar(&logging.query, "query", false, "query log, just use for query sql")
+	flag.IntVar(&logging.defaultLV, "lv", 0, "glog level for default")
+	*/
+	logging.slow = cnf.Slow
+	logging.alsoToStderr = cnf.AlsoToStderr
+	logging.query = cnf.Query
+	lv := 5
+	switch strings.ToLower(cnf.DefaultLV) {
+	case "debug", "info":
+		lv = 0
+	case "warn":
+		lv = 1
+	case "error":
+		lv = 2
+	}
+	if lv > 0 {
+		logging.defaultLV = lv
+	} else {
+		logging.alsoToStderr = true
+	}
+	logDir = &cnf.LogDir
 	// Default stderrThreshold is ERROR.
 	logging.stderrThreshold = errorLog
 
@@ -465,8 +490,8 @@ type loggingT struct {
 	verbosity Level      // V logging level, the value of the -v flag/
 	//
 	defaultLV int
-	slow  bool
-	query bool
+	slow      bool
+	query     bool
 }
 
 // buffer holds a byte Buffer for reuse. The zero value is ready for use.
@@ -1070,7 +1095,7 @@ func (v Verbose) Infof(format string, args ...interface{}) {
 // Info logs to the INFO log.
 // Arguments are handled in the manner of fmt.Print; a newline is appended if missing.
 func Info(args ...interface{}) {
-	if logging.defaultLV > int(infoLog){
+	if logging.defaultLV > int(infoLog) {
 		return
 	}
 	logging.print(infoLog, args...)
@@ -1079,7 +1104,7 @@ func Info(args ...interface{}) {
 // InfoDepth acts as Info but uses depth to determine which call frame to log.
 // InfoDepth(0, "msg") is the same as Info("msg").
 func InfoDepth(depth int, args ...interface{}) {
-	if logging.defaultLV > int(infoLog){
+	if logging.defaultLV > int(infoLog) {
 		return
 	}
 	logging.printDepth(infoLog, depth, args...)
@@ -1088,7 +1113,7 @@ func InfoDepth(depth int, args ...interface{}) {
 // Infoln logs to the INFO log.
 // Arguments are handled in the manner of fmt.Println; a newline is appended if missing.
 func Infoln(args ...interface{}) {
-	if logging.defaultLV > int(infoLog){
+	if logging.defaultLV > int(infoLog) {
 		return
 	}
 	logging.println(infoLog, args...)
@@ -1097,7 +1122,7 @@ func Infoln(args ...interface{}) {
 // Infof logs to the INFO log.
 // Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
 func Infof(format string, args ...interface{}) {
-	if logging.defaultLV > int(infoLog){
+	if logging.defaultLV > int(infoLog) {
 		return
 	}
 	logging.printf(infoLog, format, args...)
@@ -1106,7 +1131,7 @@ func Infof(format string, args ...interface{}) {
 // Warning logs to the WARNING and INFO logs.
 // Arguments are handled in the manner of fmt.Print; a newline is appended if missing.
 func Warning(args ...interface{}) {
-	if logging.defaultLV > int(warningLog){
+	if logging.defaultLV > int(warningLog) {
 		return
 	}
 	logging.print(warningLog, args...)
@@ -1115,7 +1140,7 @@ func Warning(args ...interface{}) {
 // WarningDepth acts as Warning but uses depth to determine which call frame to log.
 // WarningDepth(0, "msg") is the same as Warning("msg").
 func WarningDepth(depth int, args ...interface{}) {
-	if logging.defaultLV > int(warningLog){
+	if logging.defaultLV > int(warningLog) {
 		return
 	}
 	logging.printDepth(warningLog, depth, args...)
@@ -1124,7 +1149,7 @@ func WarningDepth(depth int, args ...interface{}) {
 // Warningln logs to the WARNING and INFO logs.
 // Arguments are handled in the manner of fmt.Println; a newline is appended if missing.
 func Warningln(args ...interface{}) {
-	if logging.defaultLV > int(warningLog){
+	if logging.defaultLV > int(warningLog) {
 		return
 	}
 	logging.println(warningLog, args...)
@@ -1133,7 +1158,7 @@ func Warningln(args ...interface{}) {
 // Warningf logs to the WARNING and INFO logs.
 // Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
 func Warningf(format string, args ...interface{}) {
-	if logging.defaultLV > int(warningLog){
+	if logging.defaultLV > int(warningLog) {
 		return
 	}
 	logging.printf(warningLog, format, args...)
@@ -1142,7 +1167,7 @@ func Warningf(format string, args ...interface{}) {
 // Error logs to the ERROR, WARNING, and INFO logs.
 // Arguments are handled in the manner of fmt.Print; a newline is appended if missing.
 func Error(args ...interface{}) {
-	if logging.defaultLV > int(errorLog){
+	if logging.defaultLV > int(errorLog) {
 		return
 	}
 	logging.print(errorLog, args...)
@@ -1151,7 +1176,7 @@ func Error(args ...interface{}) {
 // ErrorDepth acts as Error but uses depth to determine which call frame to log.
 // ErrorDepth(0, "msg") is the same as Error("msg").
 func ErrorDepth(depth int, args ...interface{}) {
-	if logging.defaultLV > int(errorLog){
+	if logging.defaultLV > int(errorLog) {
 		return
 	}
 	logging.printDepth(errorLog, depth, args...)
@@ -1160,7 +1185,7 @@ func ErrorDepth(depth int, args ...interface{}) {
 // Errorln logs to the ERROR, WARNING, and INFO logs.
 // Arguments are handled in the manner of fmt.Println; a newline is appended if missing.
 func Errorln(args ...interface{}) {
-	if logging.defaultLV > int(errorLog){
+	if logging.defaultLV > int(errorLog) {
 		return
 	}
 	logging.println(errorLog, args...)
@@ -1169,7 +1194,7 @@ func Errorln(args ...interface{}) {
 // Errorf logs to the ERROR, WARNING, and INFO logs.
 // Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
 func Errorf(format string, args ...interface{}) {
-	if logging.defaultLV > int(errorLog){
+	if logging.defaultLV > int(errorLog) {
 		return
 	}
 	logging.printf(errorLog, format, args...)
@@ -1179,7 +1204,7 @@ func Errorf(format string, args ...interface{}) {
 // including a stack trace of all running goroutines, then calls os.Exit(255).
 // Arguments are handled in the manner of fmt.Print; a newline is appended if missing.
 func Fatal(args ...interface{}) {
-	if logging.defaultLV > int(fatalLog){
+	if logging.defaultLV > int(fatalLog) {
 		return
 	}
 	logging.print(fatalLog, args...)
@@ -1188,7 +1213,7 @@ func Fatal(args ...interface{}) {
 // FatalDepth acts as Fatal but uses depth to determine which call frame to log.
 // FatalDepth(0, "msg") is the same as Fatal("msg").
 func FatalDepth(depth int, args ...interface{}) {
-	if logging.defaultLV > int(fatalLog){
+	if logging.defaultLV > int(fatalLog) {
 		return
 	}
 	logging.printDepth(fatalLog, depth, args...)
@@ -1198,7 +1223,7 @@ func FatalDepth(depth int, args ...interface{}) {
 // including a stack trace of all running goroutines, then calls os.Exit(255).
 // Arguments are handled in the manner of fmt.Println; a newline is appended if missing.
 func Fatalln(args ...interface{}) {
-	if logging.defaultLV > int(fatalLog){
+	if logging.defaultLV > int(fatalLog) {
 		return
 	}
 	logging.println(fatalLog, args...)
@@ -1208,7 +1233,7 @@ func Fatalln(args ...interface{}) {
 // including a stack trace of all running goroutines, then calls os.Exit(255).
 // Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
 func Fatalf(format string, args ...interface{}) {
-	if logging.defaultLV > int(fatalLog){
+	if logging.defaultLV > int(fatalLog) {
 		return
 	}
 	logging.printf(fatalLog, format, args...)
@@ -1221,7 +1246,7 @@ var fatalNoStacks uint32
 // Exit logs to the FATAL, ERROR, WARNING, and INFO logs, then calls os.Exit(1).
 // Arguments are handled in the manner of fmt.Print; a newline is appended if missing.
 func Exit(args ...interface{}) {
-	if logging.defaultLV > int(fatalLog){
+	if logging.defaultLV > int(fatalLog) {
 		return
 	}
 	atomic.StoreUint32(&fatalNoStacks, 1)
@@ -1231,7 +1256,7 @@ func Exit(args ...interface{}) {
 // ExitDepth acts as Exit but uses depth to determine which call frame to log.
 // ExitDepth(0, "msg") is the same as Exit("msg").
 func ExitDepth(depth int, args ...interface{}) {
-	if logging.defaultLV > int(fatalLog){
+	if logging.defaultLV > int(fatalLog) {
 		return
 	}
 	atomic.StoreUint32(&fatalNoStacks, 1)
@@ -1240,7 +1265,7 @@ func ExitDepth(depth int, args ...interface{}) {
 
 // Exitln logs to the FATAL, ERROR, WARNING, and INFO logs, then calls os.Exit(1).
 func Exitln(args ...interface{}) {
-	if logging.defaultLV > int(fatalLog){
+	if logging.defaultLV > int(fatalLog) {
 		return
 	}
 	atomic.StoreUint32(&fatalNoStacks, 1)
@@ -1250,7 +1275,7 @@ func Exitln(args ...interface{}) {
 // Exitf logs to the FATAL, ERROR, WARNING, and INFO logs, then calls os.Exit(1).
 // Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
 func Exitf(format string, args ...interface{}) {
-	if logging.defaultLV > int(fatalLog){
+	if logging.defaultLV > int(fatalLog) {
 		return
 	}
 	atomic.StoreUint32(&fatalNoStacks, 1)
@@ -1258,15 +1283,16 @@ func Exitf(format string, args ...interface{}) {
 }
 
 //
-func Query(args ...interface{}){
-	if !logging.query{
+func Query(args ...interface{}) {
+	if !logging.query {
 		return
 	}
 	logging.print(queryLog, args...)
 }
+
 //
-func Slow(args ...interface{}){
-	if !logging.slow{
+func Slow(args ...interface{}) {
+	if !logging.slow {
 		return
 	}
 	logging.print(slowLog, args...)
