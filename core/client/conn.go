@@ -558,7 +558,7 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 				return sqltypes.Result{}, fmt.Errorf("Statement is nil", err)
 			}
 			wg.Add(1)
-			go func(sql string, this *Connector, mctx context.Context) {
+			go func(sql string, this *Connector, mctx context.Context,pMainStmt sqlparser.Statement) {
 				defer wg.Done()
 				select {
 				case <-mctx.Done():
@@ -566,30 +566,29 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 					return
 				default:
 				}
-				//transaction, just enable for write only
-				if this.InTransaction && rwType == node.HOST_WRITE {
-					dsn := nodedb.GetDSN()
-					//
-					this.mu.Lock()
-					tx := this.getTransactionTx(dsn)
-					if tx == nil {
-						tx, execErr = nodedb.BeginContext(mctx)
-						if execErr != nil {
-							this.mu.Unlock()
+				if this.InTransaction  {
+					//transaction for write only
+					if rwType == node.HOST_WRITE{
+						rs, err :=this.execTransactionTx(nodedb,sql,mctx)
+						if err != nil{
 							cancel()
-							return
+							execErr = err
 						}
-						this.addTransactionTx(dsn, tx)
+						rsArr = append(rsArr, rs)
+						return
+					}else if rwType == node.HOST_READ{
+						//for update
+						if selectStmt,ok := pMainStmt.(*sqlparser.Select);ok{
+							if len(selectStmt.Lock) > 0 {
+								rs, err :=this.execTransactionTx(nodedb,sql,mctx)
+								if err != nil{
+									cancel()
+									execErr = err
+								}
+								rsArr = append(rsArr, rs)
+							}
+						}
 					}
-					this.mu.Unlock()
-					//
-					rs, err := tx.ExecContext(mctx, sql)
-					if err != nil {
-						cancel()
-						execErr = err
-					}
-					rsArr = append(rsArr, rs)
-					return
 				}
 				//
 				glog.Query("Exec: ", sql)
@@ -601,7 +600,7 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 				}
 				rsArr = append(rsArr, rs)
 				return
-			}(querySql, this, ctx)
+			}(querySql, this, ctx,mainStmt)
 		}
 	}
 	wg.Wait()
@@ -638,4 +637,21 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 		return rsArr[0], execErr
 	}
 	return sqltypes.Result{}, fmt.Errorf("no result")
+}
+
+//
+func (this *Connector)  execTransactionTx(nodedb *mysql.Client,sql string, mctx context.Context) (sqltypes.Result, error) {
+	dsn := nodedb.GetDSN()
+	var execErr error
+	this.mu.Lock()
+	defer this.mu.Unlock()
+	tx := this.getTransactionTx(dsn)
+	if tx == nil{
+		tx, execErr = nodedb.BeginContext(mctx)
+		if execErr != nil{
+			return sqltypes.Result{},execErr
+		}
+		this.addTransactionTx(dsn, tx)
+	}
+	return tx.ExecContext(mctx, sql)
 }
