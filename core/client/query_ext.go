@@ -21,10 +21,10 @@ import (
 	"strings"
 	"github.com/sgoby/sqlparser/sqltypes"
 	"github.com/sgoby/sqlparser"
-	"github.com/sgoby/myhub/mysql"
 	"github.com/sgoby/myhub/core"
 	"github.com/sgoby/myhub/core/node"
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
+	"github.com/sgoby/myhub/backend"
 )
 //
 func (this *Connector) describe(pStmt sqlparser.Statement,query string)(rs sqltypes.Result,err error,ok bool){
@@ -69,7 +69,7 @@ func (this *Connector) describe(pStmt sqlparser.Statement,query string)(rs sqlty
 	if createStmt == nil{
 		return sqltypes.Result{}, fmt.Errorf("No create sql on config :'%s'",sTbName),true;
 	}
-	resultRows := mysql.NewRows()
+	resultRows := backend.NewRows()
 	resultRows.AddField("Field",querypb.Type_VARCHAR)
 	resultRows.AddField("Type",querypb.Type_VARCHAR)
 	resultRows.AddField("Null",querypb.Type_VARCHAR)
@@ -137,7 +137,7 @@ func (this *Connector) explain(pStmt sqlparser.Statement,query string)(rs sqltyp
 	if tokens[0] != "explain"{
 		return;
 	}
-	resultRows := mysql.NewRows()
+	resultRows := backend.NewRows()
 	resultRows.AddField("id",querypb.Type_INT64)
 	resultRows.AddField("select_type",querypb.Type_VARCHAR)
 	resultRows.AddField("table",querypb.Type_VARCHAR)

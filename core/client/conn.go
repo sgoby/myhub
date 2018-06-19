@@ -38,6 +38,7 @@ import (
 	"net"
 	"github.com/sgoby/myhub/tb"
 	"github.com/sgoby/myhub/core/plan/delete_plan"
+	"github.com/sgoby/myhub/backend"
 )
 
 const (
@@ -53,7 +54,7 @@ type Connector struct {
 	MyConn         *mysql.Conn
 	DbName         string
 	InTransaction  bool                 // turn on the transaction else
-	transactionMap map[string]*mysql.Tx //[dsn]
+	transactionMap map[string]*backend.Tx //[dsn]
 	mu             *sync.Mutex
 	cancel         func()          // cancel is called after done
 	ctx            context.Context // ctx lives for the life of the Connector.
@@ -74,7 +75,7 @@ func NewConnector(c *mysql.Conn) *Connector {
 	conn := &Connector{
 		MyConn:         c,
 		mu:             new(sync.Mutex),
-		transactionMap: make(map[string]*mysql.Tx),
+		transactionMap: make(map[string]*backend.Tx),
 		lastActiveTime: time.Now(),
 	}
 	conn.ctx, conn.cancel = context.WithCancel(core.App().Context)
@@ -137,7 +138,7 @@ func (this *Connector) TxRollback() error {
 	var wg sync.WaitGroup
 	for _, tx := range this.transactionMap {
 		wg.Add(1)
-		go func(pTx *mysql.Tx, mctx context.Context) {
+		go func(pTx *backend.Tx, mctx context.Context) {
 			defer wg.Done()
 			select {
 			case <-mctx.Done():
@@ -163,7 +164,7 @@ func (this *Connector) TxCommit() error {
 	var wg sync.WaitGroup
 	for _, tx := range this.transactionMap {
 		wg.Add(1)
-		go func(pTx *mysql.Tx, mctx context.Context) {
+		go func(pTx *backend.Tx, mctx context.Context) {
 			defer wg.Done()
 			select {
 			case <-mctx.Done():
@@ -185,16 +186,16 @@ func (this *Connector) TxCommit() error {
 
 //
 func (this *Connector) clearTransactionTx() {
-	this.transactionMap = make(map[string]*mysql.Tx)
+	this.transactionMap = make(map[string]*backend.Tx)
 }
 
 //
-func (this *Connector) addTransactionTx(dsn string, tx *mysql.Tx) {
+func (this *Connector) addTransactionTx(dsn string, tx *backend.Tx) {
 	this.transactionMap[dsn] = tx
 }
 
 //
-func (this *Connector) getTransactionTx(dsn string) *mysql.Tx {
+func (this *Connector) getTransactionTx(dsn string) *backend.Tx {
 	if tx, ok := this.transactionMap[dsn]; ok {
 		return tx
 	}
@@ -640,7 +641,7 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 }
 
 //
-func (this *Connector)  execTransactionTx(nodedb *mysql.Client,sql string, mctx context.Context) (sqltypes.Result, error) {
+func (this *Connector)  execTransactionTx(nodedb *backend.Client,sql string, mctx context.Context) (sqltypes.Result, error) {
 	dsn := nodedb.GetDSN()
 	var execErr error
 	this.mu.Lock()

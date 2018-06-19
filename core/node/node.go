@@ -17,7 +17,6 @@ limitations under the License.
 package node
 
 import (
-	"github.com/sgoby/myhub/mysql"
 	"github.com/sgoby/myhub/config"
 	"strings"
 	"errors"
@@ -25,6 +24,10 @@ import (
 	"strconv"
 	"math/rand"
 	"time"
+	"github.com/sgoby/myhub/backend"
+	"github.com/sgoby/myhub/backend/driver"
+	"context"
+	"github.com/sgoby/myhub/mysql"
 )
 
 const (
@@ -33,13 +36,15 @@ const (
 )
 //
 type NodeManager struct {
+	ctx      context.Context
 	config   config.Node
 	hostsMap map[string]*Host
 }
 //
-func NewNodeManager(conf config.Node) (*NodeManager, error) {
+func NewNodeManager(ctx context.Context,conf config.Node) (*NodeManager, error) {
 	nm := &NodeManager{
 		config:   conf,
+		ctx:ctx,
 		hostsMap: make(map[string]*Host),
 	}
 	nm.initHostMap()
@@ -58,7 +63,7 @@ func (this *NodeManager) Close() error{
 	return nil
 }
 //
-func (this *NodeManager) GetMysqlClient(dbName, rwType string) (*mysql.Client, error) {
+func (this *NodeManager) GetMysqlClient(dbName, rwType string) (*backend.Client, error) {
 	//
 	for _, host := range this.hostsMap {
 		c, err := host.GetMysqlClient(dbName, rwType)
@@ -71,7 +76,7 @@ func (this *NodeManager) GetMysqlClient(dbName, rwType string) (*mysql.Client, e
 }
 func (this *NodeManager) initHostMap() {
 	for _, conf := range this.config.Hosts {
-		this.hostsMap[conf.Name] = this.newHost(conf)
+		this.hostsMap[conf.Name] = this.newHost(this,conf)
 	}
 }
 func (this *NodeManager) initDatabaseMap() error {
@@ -83,14 +88,15 @@ func (this *NodeManager) initDatabaseMap() error {
 	}
 	return nil
 }
-func (this *NodeManager) newHost(conf config.Host) *Host {
+func (this *NodeManager) newHost(manager *NodeManager,conf config.Host) *Host {
 	host := &Host{
+		manager: manager,
 		config:      conf,
 		databaseMap: make(map[string]*Database),
 	}
 	//
 	for _, cf := range conf.ReadHost {
-		rHost := this.newHost(cf)
+		rHost := this.newHost(manager,cf)
 		host.readHosts = append(host.readHosts, rHost)
 	}
 	return host
@@ -125,6 +131,7 @@ func (this *NodeManager) newDataBase(conf config.OrgDatabase) (error) {
 //
 type Host struct {
 	config      config.Host
+	manager     *NodeManager
 	databaseMap map[string]*Database
 	readHosts   []*Host //只读库
 }
@@ -133,12 +140,21 @@ type Host struct {
 type Database struct {
 	config        config.OrgDatabase
 	host          *Host
-	myReadClient  []*mysql.Client //根据权重随机分配 *[]mysql.Client
-	myWriteClient *mysql.Client
+	myReadClient  []*backend.Client //根据权重随机分配 *[]mysql.Client
+	myWriteClient *backend.Client
 }
 //
 func (this *Host) addDataBase(name string, db *Database) {
 	this.databaseMap[name] = db
+}
+//
+func (this *Host) getDriver() string{
+	return this.config.Driver
+}
+//
+//
+func (this *Host) getContext() context.Context{
+	return this.manager.ctx
 }
 //
 func (this *Host) close() error{
@@ -151,7 +167,7 @@ func (this *Host) close() error{
 	return nil
 }
 //
-func (this *Host) GetMysqlClient(dbName, rwType string) (*mysql.Client, error) {
+func (this *Host) GetMysqlClient(dbName, rwType string) (*backend.Client, error) {
 	db, ok := this.databaseMap[dbName]
 	if ok {
 		return db.getMysqlClient(rwType)
@@ -178,7 +194,7 @@ func (this *Database) close() error{
 	return nil
 }
 //with host type
-func (this *Database) getMysqlClient(rwType string) (*mysql.Client, error) {
+func (this *Database) getMysqlClient(rwType string) (*backend.Client, error) {
 	if  rwType == HOST_READ && this.myReadClient != nil &&  len(this.host.readHosts) > 0 {
 		var wArr []int
 		for i, rhost := range this.host.readHosts {
@@ -203,12 +219,20 @@ func (this *Database) getMysqlClient(rwType string) (*mysql.Client, error) {
 }
 
 //
-func (this *Database) openWithHost(h *Host) (*mysql.Client, error) {
+func (this *Database) openWithHost(h *Host) (*backend.Client, error) {
 	params, err := this.getConnParamsWithHost(h)
 	if err != nil {
 		return nil, err
 	}
-	myClient, err := mysql.Open(&params, "")
+	//default is mysql
+	ctx :=  this.host.getContext()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	dbDriver := mysql.NewMysqlDriver(ctx)
+	//if this.host.getDriver() == driver.DriverMysql{}
+	//
+	myClient, err := backend.NewSQL(&params, "",dbDriver)
 	if err != nil {
 		return nil, err
 	}
@@ -218,8 +242,8 @@ func (this *Database) openWithHost(h *Host) (*mysql.Client, error) {
 	//this.myClient.SetMaxLifeTime()
 	return myClient, nil
 }
-func (this *Database) getConnParamsWithHost(pHost *Host) (mysql.ConnParams, error) {
-	params := mysql.ConnParams{}
+func (this *Database) getConnParamsWithHost(pHost *Host) (driver.ConnParams, error) {
+	params := driver.ConnParams{}
 	//
 	addrs := strings.Split(pHost.config.Address, ":")
 	hostName := pHost.config.Name

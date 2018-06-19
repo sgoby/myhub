@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"time"
 	"strings"
+	"github.com/sgoby/myhub/backend"
 )
 
 //执行函数接口
@@ -58,7 +59,7 @@ const (
 )
 
 func (this *Connector) queryNoFromSelect(pStmt *sqlparser.Select, query string) (rs sqltypes.Result, err error, ok bool) {
-	rows := mysql.NewRows()
+	rows := backend.NewRows()
 	var vals []interface{}
 	for _, expr := range pStmt.SelectExprs {
 		t, val, fieldName, err := this.querySelectExpr(expr)

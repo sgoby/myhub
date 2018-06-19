@@ -19,13 +19,14 @@ package mysql
 import (
 	"testing"
 	"fmt"
+	"github.com/sgoby/myhub/backend/driver"
 )
 
 
 func TestConnectionWithSourceHost_Test(t *testing.T) {
 	th := &testHandler{}
 	//
-	param := &ConnParams{
+	param := &driver.ConnParams{
 		Host:   "127.0.0.1",
 		Port:   3306,
 		Uname:  "root",
@@ -56,20 +57,4 @@ func TestConnectionWithSourceHost_Test(t *testing.T) {
 	}
 	defer l.Close()
 	l.Accept()
-/*
-	host, port := getHostPort(t, l.Addr())
-
-	// Setup the right parameters.
-	params := &ConnParams{
-		Host:  host,
-		Port:  port,
-		Uname: "user1",
-		Pass:  "password1",
-	}
-
-	_, err = Connect(context.Background(), params)
-	// target is localhost, should not work from tcp connection
-	if err == nil {
-		t.Errorf("Should be able to connect to server but found error: %v", err)
-	}*/
 }

@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mysql
+package backend
 
 import (
 	"sync"
-	"database/sql/driver"
+	"github.com/sgoby/myhub/backend/driver"
 	"sync/atomic"
 	"context"
 	"errors"
@@ -27,6 +27,7 @@ import (
 
 // IsolationLevel is the transaction isolation level used in TxOptions.
 type IsolationLevel int
+
 // TxOptions holds the transaction options to be used in DB.BeginTx.
 type TxOptions struct {
 	// Isolation is the transaction isolation level.
@@ -154,7 +155,6 @@ func (tx *Tx) closemuRUnlockRelease(error) {
 	tx.closemu.RUnlock()
 }
 
-
 // Commit commits the transaction.
 func (tx *Tx) Commit() error {
 	if !atomic.CompareAndSwapInt32(&tx.done, 0, 1) {
@@ -195,7 +195,6 @@ func (tx *Tx) Rollback() error {
 	return tx.rollback(false)
 }
 
-
 // ExecContext executes a query that doesn't return rows.
 // For example: an INSERT and UPDATE.
 func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sqltypes.Result, error) {
@@ -226,27 +225,6 @@ func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{
 func (tx *Tx) Query(query string, args ...interface{}) (*sqltypes.Result, error) {
 	return tx.QueryContext(context.Background(), query, args...)
 }
-
-// QueryRowContext executes a query that is expected to return at most one row.
-// QueryRowContext always returns a non-nil value. Errors are deferred until
-// Row's Scan method is called.
-// If the query selects no rows, the *Row's Scan will return ErrNoRows.
-// Otherwise, the *Row's Scan scans the first selected row and discards
-// the rest.
-//func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sqltypes.Result {
-//	rows, err := tx.QueryContext(ctx, query, args...)
-//	return &Row{rows: rows, err: err}
-//}
-
-// QueryRow executes a query that is expected to return at most one row.
-// QueryRow always returns a non-nil value. Errors are deferred until
-// Row's Scan method is called.
-// If the query selects no rows, the *Row's Scan will return ErrNoRows.
-// Otherwise, the *Row's Scan scans the first selected row and discards
-// the rest.
-//func (tx *Tx) QueryRow(query string, args ...interface{}) *sqltypes.Result {
-//	return tx.QueryRowContext(context.Background(), query, args...)
-//}
 
 // connStmt is a prepared statement on a particular connection.
 type connStmt struct {

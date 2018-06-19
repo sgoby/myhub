@@ -25,7 +25,9 @@ import (
 	"time"
 	"context"
 	"github.com/sgoby/sqlparser/vt/vttls"
-	"database/sql/driver"
+	//"database/sql/driver"
+	"github.com/sgoby/myhub/backend/driver"
+	"github.com/sgoby/sqlparser/sqltypes"
 )
 
 // connectResult is used by Connect.
@@ -42,7 +44,7 @@ type connectResult struct {
 //
 // FIXME(alainjobart) once we have more of a server side, add test cases
 // to cover all failure scenarios.
-func Connect(ctx context.Context, params *ConnParams) (*Conn, error) {
+func Connect(ctx context.Context, params *driver.ConnParams) (*Conn, error) {
 	netProto := "tcp"
 	addr := ""
 	if params.UnixSocket != "" {
@@ -192,7 +194,7 @@ func parseCharacterSet(cs string) (uint8, error) {
 // clientHandshake handles the client side of the handshake.
 // Note the connection can be closed while this is running.
 // Returns a SQLError.
-func (c *Conn) clientHandshake(characterSet uint8, params *ConnParams) error {
+func (c *Conn) clientHandshake(characterSet uint8, params *driver.ConnParams) error {
 	// Wait for the server initial handshake packet, and parse it.
 	data, err := c.readPacket()
 	if err != nil {
@@ -465,7 +467,7 @@ func (c *Conn) parseInitialHandshakePacket(data []byte) (uint32, []byte, error) 
 
 // writeSSLRequest writes the SSLRequest packet. It's just a truncated
 // HandshakeResponse41.
-func (c *Conn) writeSSLRequest(capabilities uint32, characterSet uint8, params *ConnParams) error {
+func (c *Conn) writeSSLRequest(capabilities uint32, characterSet uint8, params *driver.ConnParams) error {
 	// Build our flags, with CapabilityClientSSL.
 	var flags uint32 = CapabilityClientLongPassword |
 		CapabilityClientLongFlag |
@@ -513,7 +515,7 @@ func (c *Conn) writeSSLRequest(capabilities uint32, characterSet uint8, params *
 
 // writeHandshakeResponse41 writes the handshake response.
 // Returns a SQLError.
-func (c *Conn) writeHandshakeResponse41(capabilities uint32, scrambledPassword []byte, characterSet uint8, params *ConnParams) error {
+func (c *Conn) writeHandshakeResponse41(capabilities uint32, scrambledPassword []byte, characterSet uint8, params *driver.ConnParams) error {
 	// Build our flags.
 	var flags uint32 = CapabilityClientLongPassword |
 		CapabilityClientLongFlag |
@@ -613,7 +615,7 @@ func parseAuthSwitchRequest(data []byte) (string, []byte, error) {
 
 // writeClearTextPassword writes the clear text password.
 // Returns a SQLError.
-func (c *Conn) writeClearTextPassword(params *ConnParams) error {
+func (c *Conn) writeClearTextPassword(params *driver.ConnParams) error {
 	length := len(params.Pass) + 1
 	data := c.startEphemeralPacket(length)
 	pos := 0
@@ -641,4 +643,8 @@ func (c *Conn) Commit() error{
 func (c *Conn) Rollback() error{
 	_,err :=  c.ExecuteFetch("rollback",0,false)
 	return err
+}
+func (c *Conn) Exec(query string, args []interface{}) (sqltypes.Result, error){
+	rs,err :=  c.ExecuteFetch(query,0,true)
+	return *rs,err
 }

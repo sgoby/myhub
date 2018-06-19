@@ -14,9 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mysql
+package driver
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // ConnParams contains all the parameters to use to connect to mysql.
 type ConnParams struct {
@@ -40,18 +42,4 @@ type ConnParams struct {
 func (cp *ConnParams) ToDSN() string {
 	//user:password@tcp(127.0.0.1:3306)/test
 	return fmt.Sprintf("%s:$s@tcp(%s:%d)/%s",cp.Uname,cp.Pass,cp.Host,cp.Port,cp.DbName)
-}
-// EnableSSL will set the right flag on the parameters.
-func (cp *ConnParams) EnableSSL() {
-	cp.Flags |= CapabilityClientSSL
-}
-
-// SslEnabled returns if SSL is enabled.
-func (cp *ConnParams) SslEnabled() bool {
-	return (cp.Flags & CapabilityClientSSL) > 0
-}
-
-// EnableClientFoundRows sets the flag for CLIENT_FOUND_ROWS.
-func (cp *ConnParams) EnableClientFoundRows() {
-	cp.Flags |= CapabilityClientFoundRows
 }

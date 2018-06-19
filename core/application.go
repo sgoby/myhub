@@ -94,7 +94,7 @@ func (this *Application) LoadConfig(cnf config.Config) (err error){
 	}
 	this.SetAuthServer(authServerMy)
 	//
-	this.nodeManager,err = node.NewNodeManager(cnf.Nodes)
+	this.nodeManager,err = node.NewNodeManager(this.Context,cnf.Nodes)
 	if err !=nil{
 		return err
 	}

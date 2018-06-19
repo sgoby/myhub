@@ -25,9 +25,9 @@ import (
 	"github.com/sgoby/sqlparser"
 	"github.com/sgoby/myhub/tb"
 	"github.com/sgoby/myhub/core"
-	"github.com/sgoby/myhub/mysql"
 	"github.com/sgoby/myhub/core/node"
 	"time"
+	"github.com/sgoby/myhub/backend"
 )
 
 //
@@ -54,7 +54,7 @@ func (this *Connector) showCreate(pStmt *sqlparser.Show, query string, mShow *tb
 			return rs, fmt.Errorf("You have an error in your SQL syntax;"), true;
 		}
 		//
-		resultRows := mysql.NewRows()
+		resultRows := backend.NewRows()
 		resultRows.AddField("Table", querypb.Type_VARCHAR)
 		resultRows.AddField("Create Table", querypb.Type_VARCHAR)
 		db, err := core.App().GetSchema().GetDataBase(dbName)
@@ -79,7 +79,7 @@ func (this *Connector) showCreate(pStmt *sqlparser.Show, query string, mShow *tb
 		if len(dbName) < 1 {
 			return rs, fmt.Errorf("You have an error in your SQL syntax;"), true;
 		}
-		resultRows := mysql.NewRows()
+		resultRows := backend.NewRows()
 		resultRows.AddField("Database", querypb.Type_VARCHAR)
 		resultRows.AddField("Create Database", querypb.Type_VARCHAR)
 		resultRows.AddRow(dbName, fmt.Sprintf("create database `%s`", dbName))
@@ -90,7 +90,7 @@ func (this *Connector) showCreate(pStmt *sqlparser.Show, query string, mShow *tb
 
 //show a list of all client connector when execute sql: 'show processlist'
 func (this *Connector) showProcesslist(pStmt *sqlparser.Show, query string) (rs sqltypes.Result, err error, ok bool) {
-	resultRows := mysql.NewRows()
+	resultRows := backend.NewRows()
 	resultRows.AddField("Id", querypb.Type_INT64)
 	resultRows.AddField("User", querypb.Type_VARCHAR)
 	resultRows.AddField("Host", querypb.Type_VARCHAR)
@@ -114,7 +114,7 @@ func (this *Connector) showProcesslist(pStmt *sqlparser.Show, query string) (rs 
 
 //
 func (this *Connector) showProfiles(pStmt *sqlparser.Show, query string) (rs sqltypes.Result, err error, ok bool) {
-	rows := mysql.NewRows()
+	rows := backend.NewRows()
 	rows.AddField("Query_ID", querypb.Type_INT64)
 	rows.AddField("Duration", querypb.Type_FLOAT64)
 	rows.AddField("Query", querypb.Type_VARCHAR)
@@ -123,7 +123,7 @@ func (this *Connector) showProfiles(pStmt *sqlparser.Show, query string) (rs sql
 
 //
 func (this *Connector) showStatus(pStmt *sqlparser.Show, query string) (rs sqltypes.Result, err error, ok bool) {
-	rows := mysql.NewRows()
+	rows := backend.NewRows()
 	rows.AddField("Variables_name", querypb.Type_VARCHAR)
 	rows.AddField("Value", querypb.Type_INT64)
 	return *(rows.ToResult()), nil, true
@@ -131,7 +131,7 @@ func (this *Connector) showStatus(pStmt *sqlparser.Show, query string) (rs sqlty
 
 //
 func (this *Connector) showVariables(pStmt *sqlparser.Show, query string) (rs sqltypes.Result, err error, ok bool) {
-	rows := mysql.NewRows()
+	rows := backend.NewRows()
 	rows.AddField("Variables_name", querypb.Type_VARCHAR)
 	rows.AddField("Value", querypb.Type_INT64)
 	rows.AddRow("lower_case_table_names", 1)
@@ -176,7 +176,7 @@ func (this *Connector) showKeys(pStmt *sqlparser.Show, query string) (rs sqltype
 	if createStmt == nil {
 		return sqltypes.Result{}, fmt.Errorf("No create sql on config :'%s'", sTbName), true;
 	}
-	resultRows := mysql.NewRows()
+	resultRows := backend.NewRows()
 	resultRows.AddField("Table", querypb.Type_VARCHAR)
 	resultRows.AddField("Non_unique", querypb.Type_VARCHAR)
 	resultRows.AddField("Key_name", querypb.Type_VARCHAR)
@@ -237,7 +237,7 @@ func (this *Connector) showFields(pStmt *sqlparser.Show, query string) (rs sqlty
 	if createStmt == nil {
 		return sqltypes.Result{}, fmt.Errorf("No create sql on config :'%s'", sTbName), true;
 	}
-	resultRows := mysql.NewRows()
+	resultRows := backend.NewRows()
 	resultRows.AddField("Field", querypb.Type_VARCHAR)
 	resultRows.AddField("Type", querypb.Type_VARCHAR)
 	resultRows.AddField("Collation", querypb.Type_VARCHAR)
@@ -285,7 +285,7 @@ func (this *Connector) showFields(pStmt *sqlparser.Show, query string) (rs sqlty
 
 //show databases
 func (this *Connector) showDatebases(pStmt *sqlparser.Show, query string) (rs sqltypes.Result, err error, ok bool) {
-	resultRows := mysql.NewRows()
+	resultRows := backend.NewRows()
 	resultRows.AddField("Database", querypb.Type_VARCHAR)
 	//
 	dbs := this.MyConn.GetDatabases()
@@ -315,7 +315,7 @@ func (this *Connector) showTables(pStmt *sqlparser.Show, query string) (rs sqlty
 		mShow.From = dbName;
 	}
 	//
-	resultRows := mysql.NewRows()
+	resultRows := backend.NewRows()
 	resultRows.AddField("Tables_in_"+mShow.From, querypb.Type_VARCHAR)
 	if mShow.Full {
 		resultRows.AddField("Tables_type", querypb.Type_VARCHAR)

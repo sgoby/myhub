@@ -14,17 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mysql
+package backend
 
 import (
 	"github.com/sgoby/sqlparser/sqltypes"
 	"sync"
 	"context"
-	"database/sql/driver"
+	"github.com/sgoby/myhub/backend/driver"
 	"time"
 	"errors"
 	"fmt"
 )
+
 var nowFunc = time.Now
 var putConnHook func(*Client, *driverConn)
 // This is the size of the connectionOpener request chan (DB.openerCh).
@@ -35,6 +36,7 @@ var putConnHook func(*Client, *driverConn)
 var connectionRequestQueueSize = 1000000
 //
 var errDBClosed = errors.New("sql: database is closed")
+
 const debugGetPut = false
 const defaultMaxIdleConns = 2
 const (
@@ -45,6 +47,7 @@ const (
 	// creates a new database connection.
 	cachedOrNewConn
 )
+
 // maxBadConnRetries is the number of maximum retries if the driver returns
 // driver.ErrBadConn to signal a broken connection before forcing a new
 // connection to be opened.
@@ -55,7 +58,7 @@ const maxBadConnRetries = 2
 //
 // See https://en.wikipedia.org/wiki/Isolation_(database_systems)#Isolation_levels.
 const (
-	LevelDefault IsolationLevel = iota
+	LevelDefault         IsolationLevel = iota
 	LevelReadUncommitted
 	LevelReadCommitted
 	LevelWriteCommitted
@@ -65,17 +68,13 @@ const (
 	LevelLinearizable
 )
 
-
-
-
-
 type connReuseStrategy uint8
 
 type Client struct {
 	//
-	connParams *ConnParams
+	connParams *driver.ConnParams
 	//
-	dsn    string
+	dsn string
 	// numClosed is an atomic counter which represents a total number of
 	// closed connections. Stmt.openStmt checks it before cleaning closed
 	// connections in Stmt.css.
@@ -91,15 +90,17 @@ type Client struct {
 	// maybeOpenNewConnections sends on the chan (one send per needed connection)
 	// It is closed during db.Close(). The close tells the connectionOpener
 	// goroutine to exit.
-	openerCh    chan struct{}
-	closed      bool
+	openerCh chan struct{}
+	closed   bool
 	//dep         map[finalCloser]depSet  //prepared statement
 	lastPut     map[*driverConn]string // stacktrace of last conn's put; debug only
 	maxIdle     int                    // zero means defaultMaxIdleConns; negative means 0
 	maxOpen     int                    // <= 0 means unlimited
 	maxLifetime time.Duration          // maximum amount of time a connection may be reused
 	cleanerCh   chan struct{}
+	myDriver    driver.Driver
 }
+
 // connRequest represents one request for a new connection
 // When there are no idle connections available, DB.conn will create
 // a new connRequest and put it on the db.connRequests list.
@@ -107,26 +108,30 @@ type connRequest struct {
 	conn *driverConn
 	err  error
 }
+
 //==========================================================================
 //
-func Open(pConnParams *ConnParams,dataSourceName string)(*Client,error){
+func NewSQL(pConnParams *driver.ConnParams, dsn string, pDriver driver.Driver) (*Client, error) {
 	db := &Client{
-		dsn:          dataSourceName,
+		dsn:          dsn,
 		connParams:   pConnParams,
 		openerCh:     make(chan struct{}, connectionRequestQueueSize),
 		lastPut:      make(map[*driverConn]string),
 		connRequests: make(map[uint64]chan connRequest),
+		myDriver:     pDriver,
 	}
 	go db.connectionOpener()
 	return db, nil
 }
+
 //
 func (this *Client) GetDSN() string {
-	if len(this.dsn) > 0{
+	if len(this.dsn) > 0 {
 		return this.dsn
 	}
 	return this.connParams.ToDSN()
 }
+
 // PingContext verifies a connection to the database is still alive,
 // establishing a connection if necessary.
 func (this *Client) PingContext(ctx context.Context) error {
@@ -154,6 +159,7 @@ func (this *Client) PingContext(ctx context.Context) error {
 func (this *Client) Ping() error {
 	return this.PingContext(context.Background())
 }
+
 // Close closes the database, releasing any open resources.
 //
 // It is rare to Close a DB, as the DB handle is meant to be
@@ -187,28 +193,33 @@ func (this *Client) Close() error {
 	}
 	return err
 }
+
 //
-func (this *Client)  Exec(query string, args ...interface{}) (sqltypes.Result, error){
+func (this *Client) Exec(query string, args ...interface{}) (sqltypes.Result, error) {
 	return this.ExecContext(context.Background(), query, args...)
-	//return sqltypes.Result{},nil
 }
+
 //
 func (this *Client) UseDB(dbName string) error {
-	_, err := this.Exec("use "+dbName)
+	_, err := this.Exec("use " + dbName)
 	return err
 }
+
 //
 func (this *Client) SetAutoCommit(n uint8) error {
 	return nil
 }
+
 //
 func (this *Client) SetCharset(charset string) error {
-   return nil
+	return nil
 }
+
 //
-func (this *Client) SetMaxLifeTime(ts int){
+func (this *Client) SetMaxLifeTime(ts int) {
 	this.maxLifetime = time.Duration(ts) * time.Second
 }
+
 // SetMaxOpenConns sets the maximum number of open connections to the database.
 //
 // If MaxIdleConns is greater than 0 and the new MaxOpenConns is less than
@@ -229,6 +240,7 @@ func (this *Client) SetMaxOpenConns(n int) {
 		this.SetMaxIdleConns(n)
 	}
 }
+
 // SetMaxIdleConns sets the maximum number of connections in the idle
 // connection pool.
 //
@@ -277,6 +289,7 @@ func (this *Client) ExecContext(ctx context.Context, query string, args ...inter
 	}
 	return res, err
 }
+
 //======================================================
 func (this *Client) exec(ctx context.Context, query string, args []interface{}, strategy connReuseStrategy) (sqltypes.Result, error) {
 	dc, err := this.conn(ctx, strategy)
@@ -291,13 +304,13 @@ func (this *Client) execDC(ctx context.Context, dc *driverConn, release func(err
 		release(err)
 	}()
 	withLock(dc, func() {
-		result,ExecuErr :=  dc.ci.ExecuteFetch(query,0,true)
-		if ExecuErr == nil{
-			res = *result
+		result, ExecuErr := dc.ci.Exec(query, args)
+		if ExecuErr == nil {
+			res = result
 		}
 		err = ExecuErr
 	})
-	return res,err
+	return res, err
 }
 func (this *Client) query(ctx context.Context, query string, args []interface{}, strategy connReuseStrategy) (sqltypes.Result, error) {
 	dc, err := this.conn(ctx, strategy)
@@ -310,20 +323,21 @@ func (this *Client) query(ctx context.Context, query string, args []interface{},
 	}()
 	rs := sqltypes.Result{}
 	withLock(dc, func() {
-		result,ExecuErr :=  dc.ci.ExecuteFetch(query,0,false)
-		if ExecuErr == nil{
-			rs = *result
+		result, ExecuErr := dc.ci.Exec(query,args)
+		if ExecuErr == nil {
+			rs = result
 		}
 		err = ExecuErr
 	})
-	return rs,err
+	return rs, err
 }
+
 // queryDC executes a query on the given connection.
 // The connection gets released by the releaseConn function.
 // The ctx context is from a query method and the txctx context is from an
 // optional transaction context.
 func (this *Client) queryDC(ctx, txctx context.Context, dc *driverConn, releaseConn func(error), query string, args []interface{}) (*sqltypes.Result, error) {
-	return nil,nil
+	return nil, nil
 }
 
 // conn returns a newly-opened or cached *driverConn.
@@ -396,7 +410,7 @@ func (this *Client) conn(ctx context.Context, strategy connReuseStrategy) (*driv
 	this.numOpen++ // optimistically
 	this.mu.Unlock()
 	//func Connect(ctx context.Context, params *ConnParams) (*Conn, error) { // client.go
-	ci, err := Connect(ctx, this.connParams)
+	ci, err := this.createConn(ctx)
 	if err != nil {
 		this.mu.Lock()
 		this.numOpen-- // correct for earlier optimism
@@ -408,13 +422,14 @@ func (this *Client) conn(ctx context.Context, strategy connReuseStrategy) (*driv
 	dc := &driverConn{
 		db:        this,
 		createdAt: nowFunc(),
-		ci:        *ci,
+		ci:        ci,
 		inUse:     true,
 	}
 	//this.addDepLocked(dc, dc)
 	this.mu.Unlock()
 	return dc, nil
 }
+
 // putConn adds a connection to the db's free pool.
 // err is optionally the last error that occurred on this connection.
 func (this *Client) putConn(dc *driverConn, err error) {
@@ -455,6 +470,7 @@ func (this *Client) putConn(dc *driverConn, err error) {
 		dc.Close()
 	}
 }
+
 // Satisfy a connRequest or put the driverConn in the idle pool and return true
 // or return false.
 // putConnDBLocked will satisfy a connRequest if there is one, or it will
@@ -501,6 +517,7 @@ func (this *Client) startCleanerLocked() {
 		go this.connectionCleaner(this.maxLifetime)
 	}
 }
+
 //
 func (this *Client) maxIdleConnsLocked() int {
 	n := this.maxIdle
@@ -514,6 +531,7 @@ func (this *Client) maxIdleConnsLocked() int {
 		return n
 	}
 }
+
 //
 // nextRequestKeyLocked returns the next connection request key.
 // It is assumed that nextRequest will not overflow.
@@ -522,6 +540,7 @@ func (this *Client) nextRequestKeyLocked() uint64 {
 	this.nextRequest++
 	return next
 }
+
 //
 // Assumes db.mu is locked.
 // If there are connRequests and the connection limit hasn't been reached,
@@ -591,19 +610,25 @@ func (this *Client) connectionCleaner(d time.Duration) {
 		t.Reset(d)
 	}
 }
+
 // Runs in a separate goroutine, opens new connections when requested.
 func (this *Client) connectionOpener() {
 	for range this.openerCh {
 		this.openNewConnection()
 	}
 }
+
+// Open one new connection
+func (this *Client) createConn(ctx context.Context) (driver.Conn, error) {
+	return this.myDriver.Open(*this.connParams,this.dsn)
+}
+
 // Open one new connection
 func (this *Client) openNewConnection() {
 	// maybeOpenNewConnctions has already executed db.numOpen++ before it sent
 	// on db.openerCh. This function must execute db.numOpen-- if the
 	// connection fails or is closed before returning.
-	ctx := context.Background()
-	ci, err := Connect(ctx, this.connParams)//db.driver.Open(db.dsn)
+	ci, err := this.createConn(context.Background()) //db.driver.Open(db.dsn)
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	if this.closed {
@@ -622,7 +647,7 @@ func (this *Client) openNewConnection() {
 	dc := &driverConn{
 		db:        this,
 		createdAt: nowFunc(),
-		ci:        *ci,
+		ci:        ci,
 	}
 	if this.putConnDBLocked(dc, err) {
 		//this.addDepLocked(dc, dc)
@@ -631,10 +656,12 @@ func (this *Client) openNewConnection() {
 		ci.Close()
 	}
 }
+
+//
 func (this *Client) pingDC(ctx context.Context, dc *driverConn, release func(error)) error {
 	var err error
 	withLock(dc, func() {
-		err =  dc.ci.Ping(ctx)
+		err = dc.ci.Ping(ctx)
 	})
 	release(err)
 	return err
@@ -669,6 +696,7 @@ func (this *Client) BeginTx(ctx context.Context, opts *TxOptions) (*Tx, error) {
 func (this *Client) BeginContext(ctx context.Context) (*Tx, error) {
 	return this.BeginTx(ctx, nil)
 }
+
 // Begin starts a transaction. The default isolation level is dependent on
 // the driver.
 func (this *Client) Begin() (*Tx, error) {

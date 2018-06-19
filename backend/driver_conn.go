@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mysql
+package backend
 
 import (
 	"time"
 	"sync"
-	"database/sql/driver"
 	"sync/atomic"
 	"errors"
 	"runtime"
+	"github.com/sgoby/myhub/backend/driver"
 )
 
 // driverConn wraps a driver.Conn with a mutex, to
@@ -34,7 +34,7 @@ type driverConn struct {
 	createdAt time.Time
 
 	sync.Mutex  // guards following
-	ci          Conn
+	ci          driver.Conn
 	closed      bool
 	finalClosed bool // ci.Close has been called
 	openStmt    map[*driverStmt]bool
@@ -60,33 +60,6 @@ func (dc *driverConn) expired(timeout time.Duration) bool {
 	}
 	return dc.createdAt.Add(timeout).Before(nowFunc())
 }
-
-/*
-// prepareLocked prepares the query on dc. When cg == nil the dc must keep track of
-// the prepared statements in a pool.
-func (dc *driverConn) prepareLocked(ctx context.Context, cg stmtConnGrabber, query string) (*driverStmt, error) {
-	si, err := ctxDriverPrepare(ctx, dc.ci, query)
-	if err != nil {
-		return nil, err
-	}
-	ds := &driverStmt{Locker: dc, si: si}
-
-	// No need to manage open statements if there is a single connection grabber.
-	if cg != nil {
-		return ds, nil
-	}
-
-	// Track each driverConn's open statements, so we can close them
-	// before closing the conn.
-	//
-	// Wrap all driver.Stmt is *driverStmt to ensure they are only closed once.
-	if dc.openStmt == nil {
-		dc.openStmt = make(map[*driverStmt]bool)
-	}
-	dc.openStmt[ds] = true
-	return ds, nil
-}
-*/
 
 // the dc.db's Mutex is held.
 func (dc *driverConn) closeDBLocked() func() error {
@@ -154,7 +127,7 @@ func (dc *driverConn) finalClose() error {
 // held during calls.
 type driverStmt struct {
 	sync.Locker // the *driverConn
-	si          driver.Stmt
+	//si          driver.Stmt
 	closed      bool
 	closeErr    error // return value of previous Close call
 }
@@ -168,7 +141,7 @@ func (ds *driverStmt) Close() error {
 		return ds.closeErr
 	}
 	ds.closed = true
-	ds.closeErr = ds.si.Close()
+	//ds.closeErr = ds.si.Close()
 	return ds.closeErr
 }
 //
