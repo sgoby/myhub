@@ -81,6 +81,12 @@ MyHub 监听的host和端口,默认端口:8520
     <slowLogTime>100</slowLogTime>
 开启慢日志（时间单位:毫秒）,默认是0不开启
 
+    <workerProcesses>0</workerProcesses>
+工作进程数,默认是0,表示取当前主机的CPU核心数
+
+    <maxConnections>2048</maxConnections>
+最大连接数,默认是2048
+
 
 ### 用户(user)配置:
 
