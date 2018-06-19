@@ -85,6 +85,7 @@ type Host struct {
 	Password string `xml:"password,attr"`
 	Weight   int    `xml:"weight,attr"` //权重
 	ReadHost []Host `xml:"host"`
+	Driver   string `xml:"driver"`
 }
 
 //============================================================================
