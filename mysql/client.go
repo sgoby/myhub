@@ -646,5 +646,8 @@ func (c *Conn) Rollback() error{
 }
 func (c *Conn) Exec(query string, args []interface{}) (sqltypes.Result, error){
 	rs,err :=  c.ExecuteFetch(query,0,true)
-	return *rs,err
+	if rs != nil{
+		return *rs,err
+	}
+	return sqltypes.Result{},err
 }
