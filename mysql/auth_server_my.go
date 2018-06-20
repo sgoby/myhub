@@ -20,6 +20,7 @@ import (
 	"net"
 	"bytes"
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
+	"regexp"
 )
 
 type AuthServerMy struct{
@@ -123,6 +124,15 @@ func (this *AuthServerMy)matchSourceHost(remoteAddr net.Addr, targetSourceHost [
 				return true
 			}else if "127.0.0.1" == currentIp && sourceHost == "localhost"{
 				return true
+			}else{
+				//match 192.168.1.*
+				reg,err := regexp.Compile(sourceHost)
+				if err != nil{
+					return false
+				}
+				if reg.MatchString(currentIp){
+					return true
+				}
 			}
 		}
 	}

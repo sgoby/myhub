@@ -9,7 +9,7 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
 - 遵守Mysql原生协议，跨语言的通用中间件代理。
 - 支持透明的MySQL连接池，不必每次新建连接。
 - 支持多个slave，slave之间通过权值进行负载均衡。
-- 支持读写分离。
+- 支持读写分离(需自行配置mysql端主从的数据自动同步，Myhub不负责任何的数据同步问题)。
 - 支持多租户。
 - 支持prepare特性。
 - 支持到后端DB的最大连接数限制。
@@ -39,20 +39,20 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
 - 安装Golang
 - Linux 上安装(build_linux.sh)
 
-        dir=`pwd`
-        export GOPATH=$dir
-        echo $GOPATH
-        git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
-        go build -o bin/myhub src/github.com/sgoby/myhub/cmd/myhub/main.go
-        echo Congratulations. Build success!
+    dir=`pwd`
+    git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
+    export GOPATH=$dir
+    echo $GOPATH
+    go build -o bin/myhub src/github.com/sgoby/myhub/cmd/myhub/main.go
+    echo Congratulations. Build success!
 
 - Windows 上安装(build_windows.bat)
 
-        git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
-        set dir=%cd%
-        set GOPATH=%GOPATH%;%dir%
-        go build -o bin/myhub.exe src/github.com/sgoby/myhub/cmd/myhub/main.go
-        echo Congratulations. Build success!
+    git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
+    set dir=%cd%
+    set GOPATH=%GOPATH%;%dir%
+    go build -o bin/myhub.exe src/github.com/sgoby/myhub/cmd/myhub/main.go
+    echo Congratulations. Build success!
 
 
 # MyHub配置入门
@@ -94,11 +94,11 @@ MyHub 监听的host和端口,默认端口:8520
     </users>
 
 参数说明：
-- 'name' 连接myhub的用户名
-- 'passwrod' 连接myhub的密码
+- 'name' 连接Myhub的用户名
+- 'passwrod' 连接Myhub的密码
 - 'charset' 字符集
 - 'db' 可使用的逻辑数据库，多个用","分隔，如:'db1,db2'，'*'表示所有逻辑数据库
-- 'ip' 允许连接的客户端ip，默认127.0.0.1 多个用","分隔，如:'192.168.1.20,192.168.1.30'，'*'表示所有ip
+- 'ip' 允许连接的客户端ip，默认127.0.0.1 多个用","分隔，如:'192.168.1.20,192.168.1.30'，'*'表示所有ip,支持模糊ip如：192.168.1.*
 
 
 
@@ -167,7 +167,7 @@ MyHub 监听的host和端口,默认端口:8520
 
 ### 分片规则(rule)配置:
 
-myhub 目前支持hash、range、date(年、月、日)三种分片规则
+Myhub 目前支持hash、range、date(年、月、日)三种分片规则
 
     <rules>
         <rule name="rang_1" ruleType="range" format="%04d">
