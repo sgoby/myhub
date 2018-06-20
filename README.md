@@ -173,7 +173,7 @@ Myhub 目前支持三种分片规则:
 2. 范围约定(range)
 此分片适用于，提前规划好分片字段某个范围属于哪个分片，start <= range < end。
 3. 按日期（年、月、日）分片(date)
-此规则可以按（年、月、日）分片，支持多个日期周期，如: 可以把每7天(rowLimit="7d")胙为的一个分片，其它同理，start <= date < end。
+此规则可以按（年、月、日）分片，支持多个日期周期，如: 可以把每7天(rowLimit="7d")作为的一个分片，其它同理，start <= date < end。
 
     <rules>
         <rule name="rang_1" ruleType="range" format="%04d">
