@@ -30,48 +30,49 @@ import (
 
 var myApp *Application
 
-func init(){
+func init() {
 	myApp = new(Application)
-	myApp.Context,myApp.cancelFunc = context.WithCancel(context.Background())
+	myApp.Context, myApp.cancelFunc = context.WithCancel(context.Background())
 }
 
 type Application struct {
-	Context      context.Context
-	cancelFunc   func()
-	config       config.Config
-	authServer   mysql.AuthServer
-	listener     *mysql.Listener
-	//serverHandle *server.ServerHandler
-	nodeManager  *node.NodeManager
-	schema       *schema.Schema
-	ruleManager  *rule.RuleManager
+	Context     context.Context
+	cancelFunc  func()
+	config      config.Config
+	authServer  mysql.AuthServer
+	listener    *mysql.Listener
+	nodeManager *node.NodeManager
+	schema      *schema.Schema
+	ruleManager *rule.RuleManager
 }
+
 //
 func App() *Application {
 	return myApp
 }
-func (this *Application) SetAuthServer(au mysql.AuthServer){
+func (this *Application) SetAuthServer(au mysql.AuthServer) {
 	this.authServer = au
 }
-func (this *Application) GetSchema() *schema.Schema{
+func (this *Application) GetSchema() *schema.Schema {
 	return this.schema
 }
-func (this *Application) GetRuleManager() *rule.RuleManager{
+func (this *Application) GetRuleManager() *rule.RuleManager {
 	return this.ruleManager
 }
-func (this *Application) GetNodeManager() *node.NodeManager{
+func (this *Application) GetNodeManager() *node.NodeManager {
 	return this.nodeManager
 }
-func (this *Application) GetSlowLogTime() int{
+func (this *Application) GetSlowLogTime() int {
 	return this.config.SlowLogTime
 }
+
 //
 func (this *Application) GetListener() *mysql.Listener {
 	return this.listener
 }
-func (this *Application) LoadConfig(cnf config.Config) (err error){
+func (this *Application) LoadConfig(cnf config.Config) (err error) {
 	authServerMy := mysql.NewAuthServerMy()
-	for _,userCnf := range cnf.Users {
+	for _, userCnf := range cnf.Users {
 		if len(userCnf.AllowIps) < 1 {
 			userCnf.AllowIps = "127.0.0.1"
 		}
@@ -81,40 +82,41 @@ func (this *Application) LoadConfig(cnf config.Config) (err error){
 		}
 		//
 		mAuthServerMyEntry := &mysql.AuthServerMyEntry{
-			Password:userCnf.Password,
-			SourceHosts:strings.Split(userCnf.AllowIps,","),
-			Databases:strings.Split(userCnf.Databases,","),
+			Password:    userCnf.Password,
+			SourceHosts: strings.Split(userCnf.AllowIps, ","),
+			Databases:   strings.Split(userCnf.Databases, ","),
 		}
 		//
-		if entry,ok := authServerMy.Entries[userCnf.Name];ok{
-			entry = append(entry,mAuthServerMyEntry)
+		if entry, ok := authServerMy.Entries[userCnf.Name]; ok {
+			entry = append(entry, mAuthServerMyEntry)
 			continue
 		}
 		authServerMy.Entries[userCnf.Name] = []*mysql.AuthServerMyEntry{mAuthServerMyEntry}
 	}
 	this.SetAuthServer(authServerMy)
 	//
-	this.nodeManager,err = node.NewNodeManager(this.Context,cnf.Nodes)
-	if err !=nil{
+	this.nodeManager, err = node.NewNodeManager(this.Context, cnf.Nodes)
+	if err != nil {
 		return err
 	}
 	//
-	this.schema,err = schema.NewSchema(cnf.Schema)
-	if err !=nil{
+	this.schema, err = schema.NewSchema(cnf.Schema)
+	if err != nil {
 		return err
 	}
 	//
-	this.ruleManager,err = rule.NewRuleManager(cnf.Rules)
-	if err !=nil{
+	this.ruleManager, err = rule.NewRuleManager(cnf.Rules)
+	if err != nil {
 		return err
 	}
 	//
 	this.config = cnf
 	return nil
 }
+
 //
 func (this *Application) Run(sh mysql.Handler) (err error) {
-	if this.config.MaxConnections > 0{
+	if this.config.MaxConnections > 0 {
 		mysql.SetMaxConnections(int64(this.config.MaxConnections))
 	}
 	//
@@ -123,13 +125,14 @@ func (this *Application) Run(sh mysql.Handler) (err error) {
 		return err
 	}
 	defer this.listener.Close()
-	glog.Info("Listener on: ",this.config.ServeListen)
+	glog.Info("Listener on: ", this.config.ServeListen)
 	glog.Flush()
 	this.listener.Accept()
 	return nil
 }
+
 //
-func (this *Application) Close(){
+func (this *Application) Close() {
 	autoinc.Close()
 	this.cancelFunc()
 	this.nodeManager.Close()
