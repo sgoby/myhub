@@ -20,8 +20,6 @@ import (
 	"errors"
 	"regexp"
 	"strings"
-	//"sync"
-
 	"github.com/golang/glog"
 	hubclient "github.com/sgoby/myhub/core/client"
 	"github.com/sgoby/myhub/mysql"
@@ -33,15 +31,17 @@ import (
 	"github.com/sgoby/myhub/core"
 )
 
+var logFlushChan chan int = make(chan int, 1)
+
 type ServerHandler struct {
-	connectorMap *ConnectorMap//map[uint32]*hubclient.Connector
+	connectorMap *ConnectorMap //map[uint32]*hubclient.Connector
 	//mu           *sync.Mutex
 }
 
 //
 func NewServerHandler() *ServerHandler {
 	mServerHandler := new(ServerHandler)
-	mServerHandler.connectorMap = NewConnectorMap()//make(map[uint32]*hubclient.Connector)
+	mServerHandler.connectorMap = NewConnectorMap() //make(map[uint32]*hubclient.Connector)
 	//mServerHandler.mu = new(sync.Mutex)
 	return mServerHandler
 }
@@ -70,30 +70,30 @@ func (this *ServerHandler) ConnectionClosed(c *mysql.Conn) {
 }
 
 //QueryTimeRecord is implement of Handler interface on server.go
-func (this *ServerHandler) QueryTimeRecord(query string, startTime time.Time){
+func (this *ServerHandler) QueryTimeRecord(query string, startTime time.Time) {
 	slowTime := core.App().GetSlowLogTime()
-	if slowTime <= 0{
+	if slowTime <= 0 {
 		return
 	}
 	millisecond := float64(time.Now().Sub(startTime).Nanoseconds()) / float64(1000000)
-	if millisecond < float64(slowTime){
+	if millisecond < float64(slowTime) {
 		return
 	}
-	glog.Slow(fmt.Sprintf("%s [use: %.2f]",query,millisecond))
+	glog.Slow(fmt.Sprintf("%s [use: %.2f]", query, millisecond))
 }
 
 //ComQuery is implement of Handler interface on server.go
 func (this *ServerHandler) ComQuery(conn interface{}, query string, callback func(*sqltypes.Result) error) error {
-	mConnector,ok := conn.(*hubclient.Connector)
-	if !ok{
+	mConnector, ok := conn.(*hubclient.Connector)
+	if !ok {
 		return errors.New("not connect!")
 	}
 	mConnector.UpActiveTime()
 	//
 	query = strings.TrimSpace(query)
 	glog.Query("Query: ", query)
-	if mConnector.IsBlacklistQuery(query){
-		return fmt.Errorf("Myhub refused execute: %s",query)
+	if mConnector.IsBlacklistQuery(query) {
+		return fmt.Errorf("Myhub refused execute: %s", query)
 	}
 	//
 	stmt, err := sqlparser.Parse(query)
@@ -110,8 +110,8 @@ func (this *ServerHandler) ComQuery(conn interface{}, query string, callback fun
 			return nil
 		}
 		//kill
-		if rs,err, isVersion := this.comKill(query); isVersion || err != nil{
-			if err != nil{
+		if rs, err, isVersion := this.comKill(query); isVersion || err != nil {
+			if err != nil {
 				return err
 			}
 			callback(rs)
@@ -122,7 +122,14 @@ func (this *ServerHandler) ComQuery(conn interface{}, query string, callback fun
 	//
 	rs, err := mConnector.ComQuery(stmt, query)
 	//
-	defer glog.Flush()
+	defer func() {
+		select {
+		case logFlushChan <- 1:
+			glog.Flush()
+			<-logFlushChan
+		default:
+		}
+	}()
 	//
 	if err != nil {
 		return err
@@ -134,45 +141,44 @@ func (this *ServerHandler) ComQuery(conn interface{}, query string, callback fun
 	return nil
 }
 
-
-
 //NewConnection is implement of IServerHandler interface on conn.go
-func (this *ServerHandler) GetConnectorMap() []*hubclient.Connector{
+func (this *ServerHandler) GetConnectorMap() []*hubclient.Connector {
 	return this.connectorMap.GetSlice()
 }
+
 //
-func (this *ServerHandler) comKill(query string) (rs *sqltypes.Result,err error,ok bool) {
-	query = strings.Replace(query,"`","",-1)
-	query = strings.Replace(query,"\n","",-1)
+func (this *ServerHandler) comKill(query string) (rs *sqltypes.Result, err error, ok bool) {
+	query = strings.Replace(query, "`", "", -1)
+	query = strings.Replace(query, "\n", "", -1)
 	query = strings.ToLower(query)
-	tokens := strings.Split(query," ")
+	tokens := strings.Split(query, " ")
 	cmdKill := ""
 	cmdKillIdStr := ""
-	for _,token := range tokens{
-		if len(cmdKill) <= 0 && token == "kill"{
+	for _, token := range tokens {
+		if len(cmdKill) <= 0 && token == "kill" {
 			cmdKill = token
 			continue
 		}
-		if len(cmdKill) > 0 && len(cmdKillIdStr) <= 0{
+		if len(cmdKill) > 0 && len(cmdKillIdStr) <= 0 {
 			cmdKillIdStr = token
 			break;
 		}
 	}
-	if len(cmdKill) <= 0{
-		return nil,nil,false
+	if len(cmdKill) <= 0 {
+		return nil, nil, false
 	}
 	//
-	id,err := strconv.ParseInt(cmdKillIdStr,10,64)
-	if err != nil{
-		return nil,err,true;
+	id, err := strconv.ParseInt(cmdKillIdStr, 10, 64)
+	if err != nil {
+		return nil, err, true;
 	}
 	//
 	c := this.getConnectorById(id);
-	if c == nil{
-		return nil,fmt.Errorf("no connection of :%d",id),true;
+	if c == nil {
+		return nil, fmt.Errorf("no connection of :%d", id), true;
 	}
 	err = c.Close()
-	return &sqltypes.Result{RowsAffected:1},err,true;
+	return &sqltypes.Result{RowsAffected: 1}, err, true;
 }
 
 //get total number of all connector
@@ -188,6 +194,7 @@ func (this *ServerHandler) getConnector(c *mysql.Conn) *hubclient.Connector {
 	}
 	return nil
 }
+
 //
 func (this *ServerHandler) getConnectorById(id int64) *hubclient.Connector {
 	conn, ok := this.connectorMap.Get(id)
