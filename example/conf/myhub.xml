@@ -25,7 +25,7 @@
     <node>
         <hosts>
             <host type="write" name="host_1" address="192.168.118.128:13307" user="root" password="123456">
-                <host type="write" name="host_1_1" address="192.168.118.128:13308" user="root" password="123456"/>
+                <host type="read" name="host_1_1" address="192.168.118.128:13308" user="root" password="123456" weight="1"/>
                 <!--
                 <host type="read" name="host_1_1"  address = "192.168.31.231:3306" user = "root" password = "123456" weight="1"/>
                 <host type="read" name="node1_1"  address = "" user = "" password = "" weight="1"/>
