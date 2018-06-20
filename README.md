@@ -39,20 +39,20 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
 - 安装Golang
 - Linux 上安装(build_linux.sh)
 
-    dir=`pwd`
-    git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
-    export GOPATH=$dir
-    echo $GOPATH
-    go build -o bin/myhub src/github.com/sgoby/myhub/cmd/myhub/main.go
-    echo Congratulations. Build success!
+        dir=`pwd`
+        git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
+        export GOPATH=$dir
+        echo $GOPATH
+        go build -o bin/myhub src/github.com/sgoby/myhub/cmd/myhub/main.go
+        echo Congratulations. Build success!
 
 - Windows 上安装(build_windows.bat)
 
-    git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
-    set dir=%cd%
-    set GOPATH=%GOPATH%;%dir%
-    go build -o bin/myhub.exe src/github.com/sgoby/myhub/cmd/myhub/main.go
-    echo Congratulations. Build success!
+        git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
+        set dir=%cd%
+        set GOPATH=%GOPATH%;%dir%
+        go build -o bin/myhub.exe src/github.com/sgoby/myhub/cmd/myhub/main.go
+        echo Congratulations. Build success!
 
 
 # MyHub配置入门
