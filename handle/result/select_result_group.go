@@ -19,11 +19,18 @@ package result
 import (
 	"github.com/sgoby/sqlparser/sqltypes"
 	"github.com/sgoby/sqlparser"
+	"github.com/golang/glog"
+	"fmt"
 )
 
 //
 type tempStruct struct {
 	slice [][]sqltypes.Value
+}
+
+type funcExprObj struct {
+	expr sqlparser.Expr
+	funcation  execFunc
 }
 
 func (this *tempStruct) add(row []sqltypes.Value) {
@@ -111,42 +118,70 @@ func (this *SelectResult) handleRowsFuncExpr(groupFieldIndexs []int) (newRows []
 		return
 	}
 	//
-	exprMap := make(map[int]execFunc)
+	exprMap := make(map[int]funcExprObj)
 	for _, expr := range exprs {
 		//
 		pExpr, ok := expr.(*sqlparser.AliasedExpr)
 		if !ok {
 			continue
 		}
-
+		//此处，应该通过字段名去取位置序号,因类有*号的可能存在。
+		fieldName := ""
+		if !pExpr.As.IsEmpty() {
+			fieldName = pExpr.As.String()
+		} else {
+			buf := sqlparser.NewTrackedBuffer(nil)
+			pExpr.Format(buf)
+			fieldName = buf.String()
+		}
+		index := this.getFieldIndex(fieldName);
 		//pExpr.Expr
 		funcExpr, funcOk := pExpr.Expr.(*sqlparser.FuncExpr)
 		if funcOk {
-			//此处，应该通过字段名去取位置序号,因类有*号的可能存在。
-			fieldName := ""
-			if !pExpr.As.IsEmpty() {
-				fieldName = pExpr.As.String()
-			} else {
-				buf := sqlparser.NewTrackedBuffer(nil)
-				pExpr.Format(buf)
-				fieldName = buf.String()
-			}
-			index := this.getFieldIndex(fieldName);
 			//exprMap[i] = funcExpr
 			if f, ok := Aggregates[funcExpr.Name.Lowered()]; ok {
 				//加入要执行的slice
-				exprMap[index] = f
+				exprMap[index] = funcExprObj{
+					expr:funcExpr,
+					funcation:f,
+				}
+			}
+		}else{
+			if _, funcOk := pExpr.Expr.(*sqlparser.GroupConcatExpr);funcOk{
+				if f, ok := Aggregates[FUNC_GROUP_CONCAT]; ok {
+					exprMap[index] = funcExprObj{
+						expr:funcExpr,
+						funcation:f,
+					}
+				}
 			}
 		}
 	}
-	//fmt.Println(exprMap)
-	for index, execFun := range exprMap {
-		newRows, err = execFun(rows, groupFieldIndexs, index)
+	if len(exprMap) < 1{
+		return
+	}
+	var valueRows [][]sqltypes.Value
+	for index, mFunExpr := range exprMap {
+		valueRowsTemp,err := mFunExpr.funcation(mFunExpr.expr,rows, groupFieldIndexs, index)
 		if err != nil {
-			return
+			return newRows,err
+		}
+		glog.Info(valueRowsTemp)
+		if len(valueRows) < 1{
+			valueRows = valueRowsTemp
+			continue
+		}
+		for i:=0;i< len(valueRows);i++{
+			if i >= len(valueRowsTemp){
+				return newRows,fmt.Errorf("error len rows %d to %d",i,len(valueRowsTemp))
+			}
+			if index >= len(valueRows[i]) || index >= len(valueRowsTemp[i]){
+				return newRows,fmt.Errorf("error len row %d",index)
+			}
+			valueRows[i][index] = valueRowsTemp[i][index]
 		}
 	}
-	return
+	return valueRows,nil
 }
 //合并
 func (this *SelectResult) mergeGroupResults(groupFieldIndexs []int)(newRows [][]sqltypes.Value, err error){

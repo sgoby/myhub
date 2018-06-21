@@ -22,15 +22,15 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
 	"github.com/sgoby/sqlparser/sqltypes"
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
 	"regexp"
+	"github.com/sgoby/sqlparser"
 )
 
 //
 //执行函数接口
-type execFunc func(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error)
+type execFunc func(expr sqlparser.Expr,rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error)
 
 //
 var Aggregates = map[string]execFunc{
@@ -39,7 +39,7 @@ var Aggregates = map[string]execFunc{
 	//FUNC_BIT_OR:       ,
 	//FUNC_BIT_XOR:      ,
 	FUNC_COUNT: execFuncCount,
-	//FUNC_GROUP_CONCAT: ,
+	FUNC_GROUP_CONCAT: execFuncGroupConcat,
 	FUNC_MAX: execFuncMax,
 	FUNC_MIN: execFuncMin,
 	//FUNC_STD:          ,
@@ -72,17 +72,76 @@ const (
 )
 
 //
-func execFuncCount(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
+func execFuncGroupConcat(expr sqlparser.Expr,rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
+	groupConcat, funcOk := expr.(*sqlparser.GroupConcatExpr)
+	if !funcOk{
+		return rows,nil
+	}
+	separator := ","
+	if len(groupConcat.Separator) > 0{
+		separator = groupConcat.Separator
+	}
+	//
+	var lastUniqueKey []sqltypes.Value
+	var tempRow []sqltypes.Value
+	var newRows [][]sqltypes.Value
+	var tempStrVal string
+	//
+	for _, row := range rows {
+		tempVal := row[funcIndex]
+		val := string(tempVal.Raw())
+		if len(val) <= 0{
+			continue
+		}
+		if len(groupFieldIndexs) > 0 {
+			uniqueKey := getRowUniqueSlice(row, groupFieldIndexs)
+			if equalUniqueSlice(uniqueKey, lastUniqueKey) {
+				if len(tempStrVal) > 0 {
+					tempStrVal += separator + val
+				} else {
+					tempStrVal = val
+				}
+				tempRow[funcIndex] = sqltypes.NewVarChar(tempStrVal)
+			} else {
+				if len(tempRow) > 0 {
+					newRows = append(newRows, tempRow)
+				}
+				tempStrVal = val
+				lastUniqueKey = uniqueKey
+				tempRow = row
+			}
+		}else{
+			if tempRow == nil {
+				tempRow = row
+			}
+			if len(tempStrVal) > 0 {
+				tempStrVal += separator + val
+			} else {
+				tempStrVal = val
+			}
+			tempRow[funcIndex] = sqltypes.NewVarChar(tempStrVal)
+		}
+	}
+	//
+	if len(tempRow) > 0 && len(tempRow) > funcIndex {
+		newRows = append(newRows, tempRow)
+	}
+	//
+	return newRows, nil
+}
+
+//
+func execFuncCount(expr sqlparser.Expr,rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
 	return execFuncComm(rows, groupFieldIndexs, funcIndex, FUNC_COUNT)
 }
 
 //
-func execFuncSum(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
+func execFuncSum(expr sqlparser.Expr,rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
 	return execFuncComm(rows, groupFieldIndexs, funcIndex, FUNC_SUM)
 }
 
 //
-func execFuncAvg(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
+func execFuncAvg(expr sqlparser.Expr,rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
 	return execFuncComm(rows, groupFieldIndexs, funcIndex, FUNC_AVG)
 }
 
@@ -191,10 +250,10 @@ func optNumStr(val string) string{
 	return strings.Join(numStrs,".")
 }
 //
-func execFuncMax(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
+func execFuncMax(expr sqlparser.Expr,rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
 	return execFuncMinMaxComm(rows, groupFieldIndexs, funcIndex, FUNC_MAX)
 }
-func execFuncMin(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
+func execFuncMin(expr sqlparser.Expr,rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int) ([][]sqltypes.Value, error) {
 	return execFuncMinMaxComm(rows, groupFieldIndexs, funcIndex, FUNC_MIN)
 }
 func execFuncMinMaxComm(rows [][]sqltypes.Value, groupFieldIndexs []int, funcIndex int, funcType string) ([][]sqltypes.Value, error) {
@@ -205,6 +264,9 @@ func execFuncMinMaxComm(rows [][]sqltypes.Value, groupFieldIndexs []int, funcInd
 	for _, row := range rows {
 		if funcIndex >= len(row) {
 			return nil, errors.New("execFuncMax: funcIndex is out of row len")
+		}
+		if isEmptyRowValue(row){
+			continue
 		}
 		//
 		if len(groupFieldIndexs) > 0 {
@@ -255,6 +317,16 @@ func execFuncMinMaxComm(rows [][]sqltypes.Value, groupFieldIndexs []int, funcInd
 	}
 	//
 	return newRows, nil
+}
+
+//
+func isEmptyRowValue(row []sqltypes.Value) bool{
+	for _,val := range row{
+		if !val.IsNull(){
+			return false
+		}
+	}
+	return true
 }
 
 //

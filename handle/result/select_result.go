@@ -48,7 +48,12 @@ func NewSelectResult(stmt *sqlparser.Select) *SelectResult {
 func (this *SelectResult) AddResult(rsArr ... sqltypes.Result) {
 	for _, rs := range rsArr {
 		this.resultSlice = append(this.resultSlice, rs)
-		this.tempRows = append(this.tempRows, rs.Rows[0:]...)
+		for _,row := range rs.Rows{
+			if isEmptyRowValue(row){
+				continue
+			}
+			this.tempRows = append(this.tempRows, row)
+		}
 		//
 		if len(this.tempFields) < 1 {
 			this.tempFields = rs.Fields
