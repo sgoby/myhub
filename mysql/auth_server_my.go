@@ -21,6 +21,8 @@ import (
 	"bytes"
 	querypb "github.com/sgoby/sqlparser/vt/proto/query"
 	"regexp"
+	"github.com/sgoby/myhub/config"
+	"strings"
 )
 
 type AuthServerMy struct{
@@ -33,19 +35,70 @@ type AuthServerMy struct{
 	// Entries contains the users, passwords and user data.
 	Entries map[string][]*AuthServerMyEntry
 }
+
 //
 type AuthServerMyEntry struct {
+	cnf         config.User
 	Password    string
 	UserData    string
 	SourceHosts []string
 	Databases   []string
 }
+
+func NewAuthServerMyEntry(cnf config.User) *AuthServerMyEntry{
+	if len(cnf.AllowIps) < 1 {
+		cnf.AllowIps = "127.0.0.1"
+	}
+	//
+	if len(cnf.Databases) < 1 {
+		cnf.Databases = "*"
+	}
+	//
+	return &AuthServerMyEntry{
+		cnf:         cnf,
+		Password:    cnf.Password,
+		SourceHosts: strings.Split(cnf.AllowIps, ","),
+		Databases:   strings.Split(cnf.Databases, ","),
+	}
+}
+
 //
 func NewAuthServerMy() *AuthServerMy{
 	return &AuthServerMy{
 		Method:  MysqlNativePassword,
 		Entries: make(map[string][]*AuthServerMyEntry),
 	}
+}
+
+//
+func (this *AuthServerMy)GetUsers()[]config.User{
+	var arr []config.User
+	for _,entitys := range this.Entries{
+		for _,ent :=range entitys{
+			arr = append(arr,ent.cnf)
+		}
+	}
+	return arr
+}
+
+//
+func (this *AuthServerMy)AddUsers(uCnf config.User){
+	user := NewAuthServerMyEntry(uCnf)
+	this.AddAuthServerMyEntry(user)
+}
+
+//
+func (this *AuthServerMy)AddAuthServerMyEntry(authMy *AuthServerMyEntry){
+	if len(authMy.cnf.Name) < 0{
+		return
+	}
+	//
+	name := authMy.cnf.Name
+	if entry, ok := this.Entries[name]; ok {
+		entry = append(entry, authMy)
+		return
+	}
+	this.Entries[name] = []*AuthServerMyEntry{authMy}
 }
 
 // AuthMethod is part of the AuthServer interface.
@@ -105,6 +158,7 @@ func (this *AuthServerMy)Negotiate(c *Conn, user string, remoteAddr net.Addr) (G
 	return &MyUserData{userName:user}, NewSQLError(ERAccessDeniedError, SSAccessDeniedError, "Access denied for user '%v'", user)
 }
 
+//
 func (this *AuthServerMy)matchSourceHost(remoteAddr net.Addr, targetSourceHost []string) bool {
 	if targetSourceHost == nil{
 		return true
@@ -138,17 +192,20 @@ func (this *AuthServerMy)matchSourceHost(remoteAddr net.Addr, targetSourceHost [
 	}
 	return false
 }
-//
+
 // MyUserData holds the username
 type MyUserData struct {
 	userName string
 	databases []string
 }
+
+//
 func NewMyUserData(value string) *MyUserData{
 	return &MyUserData{
 		userName:value,
 	}
 }
+
 // Get returns the wrapped username
 func (sud *MyUserData) Get() *querypb.VTGateCallerID {
 	return &querypb.VTGateCallerID{Username: sud.userName,Groups:sud.databases}

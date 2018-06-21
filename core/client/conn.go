@@ -561,6 +561,14 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 			wg.Add(1)
 			go func(sql string, this *Connector, mctx context.Context,pMainStmt sqlparser.Statement) {
 				defer wg.Done()
+				defer func() {
+					if x := recover(); x != nil {
+						cancel()
+						glog.Errorf("execSchemaPlans caught panic:\n%v\n%s", x, tb.Stack(4))
+						execErr = fmt.Errorf("execSchema Error:%v",x)
+					}
+				}()
+				//
 				select {
 				case <-mctx.Done():
 					execErr = mctx.Err()

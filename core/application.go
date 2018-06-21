@@ -24,7 +24,6 @@ import (
 	"github.com/sgoby/myhub/core/schema"
 	"github.com/sgoby/myhub/core/rule"
 	"github.com/golang/glog"
-	"strings"
 	"github.com/sgoby/myhub/utils/autoinc"
 )
 
@@ -39,7 +38,7 @@ type Application struct {
 	Context     context.Context
 	cancelFunc  func()
 	config      config.Config
-	authServer  mysql.AuthServer
+	authServer  *mysql.AuthServerMy
 	listener    *mysql.Listener
 	nodeManager *node.NodeManager
 	schema      *schema.Schema
@@ -50,8 +49,8 @@ type Application struct {
 func App() *Application {
 	return myApp
 }
-func (this *Application) SetAuthServer(au mysql.AuthServer) {
-	this.authServer = au
+func (this *Application) GetAuthServer() *mysql.AuthServerMy {
+	return this.authServer
 }
 func (this *Application) GetSchema() *schema.Schema {
 	return this.schema
@@ -71,29 +70,11 @@ func (this *Application) GetListener() *mysql.Listener {
 	return this.listener
 }
 func (this *Application) LoadConfig(cnf config.Config) (err error) {
-	authServerMy := mysql.NewAuthServerMy()
+	this.authServer = mysql.NewAuthServerMy()
 	for _, userCnf := range cnf.Users {
-		if len(userCnf.AllowIps) < 1 {
-			userCnf.AllowIps = "127.0.0.1"
-		}
-		//
-		if len(userCnf.Databases) < 1 {
-			userCnf.Databases = "*"
-		}
-		//
-		mAuthServerMyEntry := &mysql.AuthServerMyEntry{
-			Password:    userCnf.Password,
-			SourceHosts: strings.Split(userCnf.AllowIps, ","),
-			Databases:   strings.Split(userCnf.Databases, ","),
-		}
-		//
-		if entry, ok := authServerMy.Entries[userCnf.Name]; ok {
-			entry = append(entry, mAuthServerMyEntry)
-			continue
-		}
-		authServerMy.Entries[userCnf.Name] = []*mysql.AuthServerMyEntry{mAuthServerMyEntry}
+		mAuthServerMyEntry := mysql.NewAuthServerMyEntry(userCnf)
+		this.authServer.AddAuthServerMyEntry(mAuthServerMyEntry)
 	}
-	this.SetAuthServer(authServerMy)
 	//
 	this.nodeManager, err = node.NewNodeManager(this.Context, cnf.Nodes)
 	if err != nil {

@@ -53,6 +53,23 @@ func NewNodeManager(ctx context.Context,conf config.Node) (*NodeManager, error) 
 	return nm, err
 }
 //
+func (this *NodeManager) GetHostByName(name string) *Host{
+	for key, host := range this.hostsMap {
+		if key == name{
+			return host
+		}
+	}
+	return nil
+}
+//
+func (this *NodeManager) GetHosts() []*Host{
+	var arr []*Host
+	for _, host := range this.hostsMap {
+		arr = append(arr,host)
+	}
+	return arr
+}
+//
 func (this *NodeManager) Close() error{
 	for _, host := range this.hostsMap {
 		err := host.close()
@@ -130,14 +147,18 @@ func (this *NodeManager) newDataBase(conf config.OrgDatabase) (error) {
 //=========================================================================================
 //
 type Host struct {
+	uniqueId    int64
 	config      config.Host
 	manager     *NodeManager
 	databaseMap map[string]*Database
-	readHosts   []*Host //只读库
+	readHosts   []*Host //store read only host
+	isNormal    bool //expression host online status
+	lastActive  time.Time //record last active time
 }
 
 //
 type Database struct {
+	uniqueId      int64
 	config        config.OrgDatabase
 	host          *Host
 	myReadClient  []*backend.Client //根据权重随机分配 *[]mysql.Client
