@@ -94,16 +94,17 @@ type Client struct {
 	// maybeOpenNewConnections sends on the chan (one send per needed connection)
 	// It is closed during db.Close(). The close tells the connectionOpener
 	// goroutine to exit.
-	openerCh    chan struct{}
-	closed      bool
-	lastPut     map[*driverConn]string // stacktrace of last conn's put; debug only
-	maxIdle     int                    // zero means defaultMaxIdleConns; negative means 0
-	maxOpen     int                    // <= 0 means unlimited
-	maxLifetime time.Duration          // maximum amount of time a connection may be reused
-	cleanerCh   chan struct{}
-	myDriver    driver.Driver
-	isActived   bool //expression host online status
-	reOpenTimer *time.Timer
+	openerCh       chan struct{}
+	closed         bool
+	lastPut        map[*driverConn]string // stacktrace of last conn's put; debug only
+	maxIdle        int                    // zero means defaultMaxIdleConns; negative means 0
+	maxOpen        int                    // <= 0 means unlimited
+	maxLifetime    time.Duration          // maximum amount of time a connection may be reused
+	cleanerCh      chan struct{}
+	myDriver       driver.Driver
+	isActived      bool //expression host online status
+	reOpenTimer    *time.Timer
+	lastActiveTime int64
 }
 
 // connRequest represents one request for a new connection
@@ -145,6 +146,7 @@ func (this *Client) reOpenSql() {
 	ndb, err := NewSQL(this.connParams, this.dsn, this.myDriver)
 	if err != nil {
 		glog.Error(err)
+		ndb.Close()
 		this.reOpenTimer.Reset(reConnectInterval)
 		return;
 	}
@@ -232,9 +234,13 @@ func (this *Client) Close() error {
 		this.mu.Unlock()
 		return nil
 	}
-	close(this.openerCh)
+	if this.openerCh != nil {
+		close(this.openerCh)
+		this.openerCh = nil
+	}
 	if this.cleanerCh != nil {
 		close(this.cleanerCh)
+		this.cleanerCh = nil
 	}
 	var err error
 	fns := make([]func() error, 0, len(this.freeConn))
@@ -416,6 +422,7 @@ func (this *Client) conn(ctx context.Context, strategy connReuseStrategy) (*driv
 		this.mu.Unlock()
 		return nil, ctx.Err()
 	}
+	this.lastActiveTime = time.Now().Unix()
 	lifetime := this.maxLifetime
 	// Prefer a free connection, if possible.
 	numFree := len(this.freeConn)
@@ -675,9 +682,27 @@ func (this *Client) connectionCleaner(d time.Duration) {
 
 // Runs in a separate goroutine, opens new connections when requested.
 func (this *Client) connectionOpener() {
-	for range this.openerCh {
-		this.openNewConnection()
+	for {
+		select {
+		case _, ok := <-this.openerCh:
+			if !ok {
+				return
+			}
+			this.openNewConnection()
+		case <-time.After(time.Second * 10):
+			diff := time.Now().Unix() - this.lastActiveTime
+			if this.IsActived()  && diff >= 10{
+				err := this.Ping()
+				if err != nil {
+					this.UpStatus(false)
+					glog.Error(err)
+				}
+			}
+		}
 	}
+	//for range this.openerCh {
+	//	this.openNewConnection()
+	//}
 }
 
 // Open one new connection
