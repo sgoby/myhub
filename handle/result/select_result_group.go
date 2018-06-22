@@ -29,8 +29,8 @@ type tempStruct struct {
 }
 
 type funcExprObj struct {
-	expr sqlparser.Expr
-	funcation  execFunc
+	expr      sqlparser.Expr
+	funcation execFunc
 }
 
 func (this *tempStruct) add(row []sqltypes.Value) {
@@ -71,7 +71,6 @@ func sortGroupRows(rows [][]sqltypes.Value, fieldIndexs []int) (newRows [][]sqlt
 		}
 	} else { //is not has more group
 		for _, rows := range rowsMap {
-			//fmt.Println("###",rows)
 			newRows = append(newRows, rows...)
 		}
 	}
@@ -81,7 +80,7 @@ func sortGroupRows(rows [][]sqltypes.Value, fieldIndexs []int) (newRows [][]sqlt
 //处理group
 func (this *SelectResult) handleRowsGroupBy() (err error) {
 	fieldIndexs := []int{}
-	exprs := this.stmt.GroupBy //sqlparser.SelectExprs
+	exprs := this.stmt.GroupBy
 	//
 	var valStr string
 	for _, expr := range exprs {
@@ -97,9 +96,9 @@ func (this *SelectResult) handleRowsGroupBy() (err error) {
 		//
 		this.tempRows = sortGroupRows(this.tempRows, fieldIndexs)
 	}
-	//处理函数
+	//handle function expressions
 	this.tempRows, err = this.handleRowsFuncExpr(fieldIndexs)
-	//普通合并
+	//handle normal merge 普通合并
 	this.tempRows, err = this.mergeGroupResults(fieldIndexs)
 	//
 	return
@@ -135,74 +134,74 @@ func (this *SelectResult) handleRowsFuncExpr(groupFieldIndexs []int) (newRows []
 			fieldName = buf.String()
 		}
 		index := this.getFieldIndex(fieldName);
-		//pExpr.Expr
+		//
 		funcExpr, funcOk := pExpr.Expr.(*sqlparser.FuncExpr)
 		if funcOk {
-			//exprMap[i] = funcExpr
 			if f, ok := Aggregates[funcExpr.Name.Lowered()]; ok {
 				//加入要执行的slice
 				exprMap[index] = funcExprObj{
-					expr:funcExpr,
-					funcation:f,
+					expr:      funcExpr,
+					funcation: f,
 				}
 			}
-		}else{
-			if _, funcOk := pExpr.Expr.(*sqlparser.GroupConcatExpr);funcOk{
+		} else {
+			if _, funcOk := pExpr.Expr.(*sqlparser.GroupConcatExpr); funcOk {
 				if f, ok := Aggregates[FUNC_GROUP_CONCAT]; ok {
 					exprMap[index] = funcExprObj{
-						expr:funcExpr,
-						funcation:f,
+						expr:      funcExpr,
+						funcation: f,
 					}
 				}
 			}
 		}
 	}
-	if len(exprMap) < 1{
+	if len(exprMap) < 1 {
 		return
 	}
 	var valueRows [][]sqltypes.Value
 	for index, mFunExpr := range exprMap {
-		valueRowsTemp,err := mFunExpr.funcation(mFunExpr.expr,rows, groupFieldIndexs, index)
+		valueRowsTemp, err := mFunExpr.funcation(mFunExpr.expr, rows, groupFieldIndexs, index)
 		if err != nil {
-			return newRows,err
+			return newRows, err
 		}
 		glog.Info(valueRowsTemp)
-		if len(valueRows) < 1{
+		if len(valueRows) < 1 {
 			valueRows = valueRowsTemp
 			continue
 		}
-		for i:=0;i< len(valueRows);i++{
-			if i >= len(valueRowsTemp){
-				return newRows,fmt.Errorf("error len rows %d to %d",i,len(valueRowsTemp))
+		for i := 0; i < len(valueRows); i++ {
+			if i >= len(valueRowsTemp) {
+				return newRows, fmt.Errorf("error len rows %d to %d", i, len(valueRowsTemp))
 			}
-			if index >= len(valueRows[i]) || index >= len(valueRowsTemp[i]){
-				return newRows,fmt.Errorf("error len row %d",index)
+			if index >= len(valueRows[i]) || index >= len(valueRowsTemp[i]) {
+				return newRows, fmt.Errorf("error len row %d", index)
 			}
 			valueRows[i][index] = valueRowsTemp[i][index]
 		}
 	}
-	return valueRows,nil
+	return valueRows, nil
 }
-//合并
-func (this *SelectResult) mergeGroupResults(groupFieldIndexs []int)(newRows [][]sqltypes.Value, err error){
+
+//merge by group
+func (this *SelectResult) mergeGroupResults(groupFieldIndexs []int) (newRows [][]sqltypes.Value, err error) {
 	rows := this.tempRows
 	var lastUniqueKey []sqltypes.Value
 	var tempRow []sqltypes.Value
 	//
 	if len(groupFieldIndexs) <= 0 {
-		return rows,nil
+		return rows, nil
 	}
 	//
-	for _,row := range rows{
+	for _, row := range rows {
 		uniqueKey := getRowUniqueSlice(row, groupFieldIndexs)
 		if tempRow == nil {
 			tempRow = row
 			lastUniqueKey = uniqueKey
 			continue
-		}else{
+		} else {
 			if equalUniqueSlice(uniqueKey, lastUniqueKey) {
 				continue
-			}else{
+			} else {
 				if len(tempRow) > 0 {
 					newRows = append(newRows, tempRow)
 				}
@@ -213,8 +212,8 @@ func (this *SelectResult) mergeGroupResults(groupFieldIndexs []int)(newRows [][]
 		}
 	}
 	//
-	if len(tempRow) > 0  {
+	if len(tempRow) > 0 {
 		newRows = append(newRows, tempRow)
 	}
-	return newRows,nil
+	return newRows, nil
 }
