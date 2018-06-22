@@ -24,6 +24,7 @@ import (
 	"time"
 	"errors"
 	"fmt"
+	"github.com/golang/glog"
 )
 
 var nowFunc = time.Now
@@ -52,6 +53,9 @@ const (
 // driver.ErrBadConn to signal a broken connection before forcing a new
 // connection to be opened.
 const maxBadConnRetries = 2
+
+//
+const reConnectInterval = 5 * time.Second
 
 // Various isolation levels that drivers may support in BeginTx.
 // If a driver does not support a given isolation level an error may be returned.
@@ -90,15 +94,16 @@ type Client struct {
 	// maybeOpenNewConnections sends on the chan (one send per needed connection)
 	// It is closed during db.Close(). The close tells the connectionOpener
 	// goroutine to exit.
-	openerCh chan struct{}
-	closed   bool
-	//dep         map[finalCloser]depSet  //prepared statement
+	openerCh    chan struct{}
+	closed      bool
 	lastPut     map[*driverConn]string // stacktrace of last conn's put; debug only
 	maxIdle     int                    // zero means defaultMaxIdleConns; negative means 0
 	maxOpen     int                    // <= 0 means unlimited
 	maxLifetime time.Duration          // maximum amount of time a connection may be reused
 	cleanerCh   chan struct{}
 	myDriver    driver.Driver
+	isActived   bool //expression host online status
+	reOpenTimer *time.Timer
 }
 
 // connRequest represents one request for a new connection
@@ -121,7 +126,64 @@ func NewSQL(pConnParams *driver.ConnParams, dsn string, pDriver driver.Driver) (
 		myDriver:     pDriver,
 	}
 	go db.connectionOpener()
+	//
+	err := db.Ping()
+	if err != nil {
+		return db, err
+	}
+	db.isActived = true
 	return db, nil
+}
+
+//
+func (this *Client) IsActived() bool {
+	return this.isActived
+}
+
+//
+func (this *Client) reOpenSql() {
+	ndb, err := NewSQL(this.connParams, this.dsn, this.myDriver)
+	if err != nil {
+		glog.Error(err)
+		this.reOpenTimer.Reset(reConnectInterval)
+		return;
+	}
+	this.Close()
+	this.clone(ndb)
+	//
+	glog.Info(this.dsn, "ReOpen success!")
+}
+
+//
+func (this *Client) clone(ndb *Client) {
+	this.connParams = ndb.connParams
+	this.dsn = ndb.dsn
+	this.numClosed = ndb.numClosed
+	this.mu = ndb.mu
+	this.freeConn = ndb.freeConn
+	this.connRequests = ndb.connRequests
+	this.nextRequest = ndb.nextRequest
+	this.numOpen = ndb.numOpen
+	this.openerCh = ndb.openerCh
+	this.closed = ndb.closed
+	this.lastPut = ndb.lastPut
+	this.maxIdle = ndb.maxIdle
+	this.maxOpen = ndb.maxOpen
+	this.maxLifetime = ndb.maxLifetime
+	this.cleanerCh = ndb.cleanerCh
+	this.myDriver = ndb.myDriver
+	this.isActived = ndb.isActived
+	this.reOpenTimer = ndb.reOpenTimer
+}
+
+//
+func (this *Client) UpStatus(mIsActived bool) {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+	this.isActived = mIsActived
+	if !mIsActived && this.reOpenTimer == nil {
+		this.reOpenTimer = time.AfterFunc(time.Second, this.reOpenSql)
+	}
 }
 
 //
@@ -323,7 +385,7 @@ func (this *Client) query(ctx context.Context, query string, args []interface{},
 	}()
 	rs := sqltypes.Result{}
 	withLock(dc, func() {
-		result, ExecuErr := dc.ci.Exec(query,args)
+		result, ExecuErr := dc.ci.Exec(query, args)
 		if ExecuErr == nil {
 			rs = result
 		}
@@ -620,7 +682,7 @@ func (this *Client) connectionOpener() {
 
 // Open one new connection
 func (this *Client) createConn(ctx context.Context) (driver.Conn, error) {
-	return this.myDriver.Open(*this.connParams,this.dsn)
+	return this.myDriver.Open(*this.connParams, this.dsn)
 }
 
 // Open one new connection

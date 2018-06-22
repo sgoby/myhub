@@ -79,12 +79,13 @@ func (this *NodeManager) Close() error{
 	}
 	return nil
 }
+
 //
 func (this *NodeManager) GetMysqlClient(dbName, rwType string) (*backend.Client, error) {
 	//
 	for _, host := range this.hostsMap {
 		c, err := host.GetMysqlClient(dbName, rwType)
-		if err == nil && c != nil {
+		if err != nil || c != nil {
 			return c, err
 		}
 	}
@@ -193,7 +194,7 @@ func (this *Host) GetMysqlClient(dbName, rwType string) (*backend.Client, error)
 	if ok {
 		return db.getMysqlClient(rwType)
 	}
-	return nil, errors.New("Not found database")
+	return nil, nil
 }
 //======================================================================
 func (this *Database) close() error{
@@ -219,6 +220,11 @@ func (this *Database) getMysqlClient(rwType string) (*backend.Client, error) {
 	if  rwType == HOST_READ && this.myReadClient != nil &&  len(this.host.readHosts) > 0 {
 		var wArr []int
 		for i, rhost := range this.host.readHosts {
+			//auto filter invalid mysql client 自动过滤无效连接
+			if i >= len(this.myReadClient) || !this.myReadClient[i].IsActived(){
+				continue
+			}
+			//
 			for j := 0; j < rhost.config.Weight; j++ {
 				wArr = append(wArr, i)
 			}
@@ -234,6 +240,9 @@ func (this *Database) getMysqlClient(rwType string) (*backend.Client, error) {
 		}
 	}
 	if this.myWriteClient != nil {
+		if !this.myWriteClient.IsActived(){
+			return nil, fmt.Errorf("can not connnect db %s to %s",this.config.Name,this.host.config.Name)
+		}
 		return this.myWriteClient, nil
 	}
 	return nil, errors.New("No db connector can use")

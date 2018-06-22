@@ -525,7 +525,13 @@ func (this *Connector) execProxyPlan(db *schema.Database, pStmt sqlparser.Statem
 		}
 	default:
 	}
-	return myClient.Exec(query)
+	rs,err = myClient.Exec(query)
+	if err != nil{
+		if this.needReconnect(err){
+			myClient.UpStatus(false)
+		}
+	}
+	return
 }
 
 //
@@ -580,6 +586,9 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 					if rwType == node.HOST_WRITE{
 						rs, err :=this.execTransactionTx(nodedb,sql,mctx)
 						if err != nil{
+							if this.needReconnect(err){
+								nodedb.UpStatus(false)
+							}
 							cancel()
 							execErr = err
 						}
@@ -591,6 +600,9 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 							if len(selectStmt.Lock) > 0 {
 								rs, err :=this.execTransactionTx(nodedb,sql,mctx)
 								if err != nil{
+									if this.needReconnect(err){
+										nodedb.UpStatus(false)
+									}
 									cancel()
 									execErr = err
 								}
@@ -603,6 +615,9 @@ func (this *Connector) execSchemaPlans(mainStmt sqlparser.Statement, plans []pla
 				glog.Query("Exec: ", sql)
 				rs, err := nodedb.ExecContext(mctx, sql)
 				if err != nil {
+					if this.needReconnect(err){
+						nodedb.UpStatus(false)
+					}
 					cancel()
 					glog.Error(err)
 					execErr = err
@@ -663,4 +678,14 @@ func (this *Connector)  execTransactionTx(nodedb *backend.Client,sql string, mct
 		this.addTransactionTx(dsn, tx)
 	}
 	return tx.ExecContext(mctx, sql)
+}
+
+//
+func (this *Connector) needReconnect(err error) bool{
+	if sqlerr, ok := err.(*mysql.SQLError); ok {
+		if 	sqlerr.Num == mysql.CRServerGone || sqlerr.Num == mysql.CRServerLost{
+			return true
+		}
+	}
+	return false
 }
