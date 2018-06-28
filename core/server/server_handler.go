@@ -31,8 +31,6 @@ import (
 	"github.com/sgoby/myhub/core"
 )
 
-var logFlushChan chan int = make(chan int, 1)
-
 type ServerHandler struct {
 	connectorMap *ConnectorMap //map[uint32]*hubclient.Connector
 	//mu           *sync.Mutex
@@ -84,6 +82,7 @@ func (this *ServerHandler) QueryTimeRecord(query string, startTime time.Time) {
 
 //ComQuery is implement of Handler interface on server.go
 func (this *ServerHandler) ComQuery(conn interface{}, query string, callback func(*sqltypes.Result) error) error {
+	defer glog.Flush()
 	mConnector, ok := conn.(*hubclient.Connector)
 	if !ok {
 		return errors.New("not connect!")
@@ -121,15 +120,6 @@ func (this *ServerHandler) ComQuery(conn interface{}, query string, callback fun
 	}
 	//
 	rs, err := mConnector.ComQuery(stmt, query)
-	//
-	defer func() {
-		select {
-		case logFlushChan <- 1:
-			glog.Flush()
-			<-logFlushChan
-		default:
-		}
-	}()
 	//
 	if err != nil {
 		return err

@@ -134,7 +134,6 @@ func (this *SelectResult) handleRowsFuncExpr(groupFieldIndexs []int) (newRows []
 			fieldName = buf.String()
 		}
 		index := this.getFieldIndex(fieldName);
-		//
 		funcExpr, funcOk := pExpr.Expr.(*sqlparser.FuncExpr)
 		if funcOk {
 			if f, ok := Aggregates[funcExpr.Name.Lowered()]; ok {

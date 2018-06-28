@@ -118,6 +118,9 @@ var severityName = []string{
 	fatalLog:   "FATAL",
 }
 
+//
+var logFlushChan chan int = make(chan int, 1)
+
 // get returns the value of the severity.
 func (s *severity) get() severity {
 	return severity(atomic.LoadInt32((*int32)(s)))
@@ -435,7 +438,12 @@ func InitWithCnf(cnf LogConfig) {
 
 // Flush flushes all pending log I/O.
 func Flush() {
-	logging.lockAndFlushAll()
+	select {
+	case logFlushChan <- 1:
+		logging.lockAndFlushAll()
+		<-logFlushChan
+	default:
+	}
 }
 
 // loggingT collects all the global state of the logging setup.
