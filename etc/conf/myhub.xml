@@ -10,9 +10,6 @@
     <!--  only log the query that take more than slow_log_time (ms)  -->
     <slowLogTime>500</slowLogTime>
 
-    <!-- the path of blacklist sql file -->
-    <blacklistSql></blacklistSql>
-
     <users>
         <!-- db1,db2,ip1,ip2 * means any database or ip -->
         <user name="root" passwrod="123456" charset="utf-8" db="*" ip="*"/>
