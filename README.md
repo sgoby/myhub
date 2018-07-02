@@ -36,7 +36,19 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
 - 支持主键自增长ID。
 
 ### 安装
-您可以[从release页面获取最新版的RPM安装包](https://github.com/sgoby/myhub/releases)，也可以通过以下步骤自行编译安装:
+
+####RPM安装
+
+- 下载、安装
+
+        wget https://github.com/sgoby/myhub/releases/download/0.0.1/myhub-0.0.1-1.x86_64.rpm
+        rpm -ivh myhub-0.0.1-1.x86_64.rpm
+
+- 启动
+
+        service myhub start
+
+####编译安装
 
 - 安装Golang、git
 
