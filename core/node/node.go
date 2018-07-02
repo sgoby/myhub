@@ -52,6 +52,15 @@ func NewNodeManager(ctx context.Context,conf config.Node) (*NodeManager, error) 
 	//
 	return nm, err
 }
+
+
+//
+func (this *NodeManager) AddHostByCfg(conf config.Host) error{
+	host := this.newHost(this,conf)
+	this.hostsMap[conf.Name] = host
+	return nil
+}
+
 //
 func (this *NodeManager) GetHostByName(name string) *Host{
 	for key, host := range this.hostsMap {
