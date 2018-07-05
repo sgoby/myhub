@@ -173,7 +173,7 @@ Add schema database to Myhub.
         <dataBase name="test_1" proxyDataBase="test"/>
     </schema>
 
-Description:
+**Description:**
 - 'dataBase' Represent: schema database config.
 - 'dataBase' -> 'name' Represent: schema database name.
 - 'dataBase' -> 'proxyDataBase' Represent: the node database name being proxied, use for direct proxy.
@@ -181,7 +181,7 @@ Description:
 - 'table' Represent: schema table config.
 - 'table' -> 'name' Represent: table name, must be guaranteed to be unique.
 - 'table' -> 'ruleKey' Represent: segmentation rule key, it must be the field name in the table.
-- 'table' -> 'rule' Represent: segmentation rule. [Linke:rules](### Segmentation rule)
+- 'table' -> 'rule' Represent: segmentation rule. [Linke:rules](#Segmentation rule)
 - 'table' -> 'createSql' Represent: automatically create a create statement for the sub-table, the value can be a SQL file path, or a SQL statement.
 
 ### Segmentation rule:
