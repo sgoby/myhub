@@ -120,7 +120,7 @@ Record SQL, when execute use time more than config time (ms),Default:0 represent
 - 'name' Represent: client user name of connect Myhub.
 - 'passwrod' Represent: client passwrod of connect Myhub.
 - 'charset' Represent: client charset of connect Myhub. Default:UTF-8
-- 'db' Represent: schema database  the user can use, multiple separated by','. ex:'db1,db2', '*'represent all. Default:*
+- 'db' Represent: schema database  the user can use, multiple separated by','. ex:'db1,db2', '\*'represent all. Default:*
 - 'ip' Represent: allow client's IP to connect to Myhub, support any match chart '\*', multiple separated by','; ex:'192.168.1.20,192.168.2.\*', Default:'127.0.0.1'.
 
 
