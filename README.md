@@ -183,7 +183,7 @@ Add schema database to Myhub.
 - 'table' Represent: schema table config.
 - 'table' -> 'name' Represent: table name, must be guaranteed to be unique.
 - 'table' -> 'ruleKey' Represent: segmentation rule key, it must be the field name in the table.
-- 'table' -> 'rule' Represent: segmentation rule. [Linke:rules](#Segmentation rule)
+- 'table' -> 'rule' Represent: segmentation rule. [Linke:rules](#segmentation-rule)
 - 'table' -> 'createSql' Represent: automatically create a create statement for the sub-table, the value can be a SQL file path, or a SQL statement.
 
 ### Segmentation rule:
