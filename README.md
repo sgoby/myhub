@@ -1,3 +1,5 @@
+[Englist](README.md)   [中文主页](README_ZH.md)
+
 # MyHub Introduction
 
 MyHub is a high-performance MySQL agent middleware project developed by Golang, MyHub is dedicated to simplifying the MySQL sub-segmentation
@@ -187,6 +189,7 @@ Add schema database to Myhub.
 ### Segmentation rule:
 
 Myhub support three kinds of fragmentation rules:
+
 **1. hash**
 
 This rule uses the modulo operation. This algorithm can divide adjacent data into the same slice according to the 'rowLimit' value in config,
