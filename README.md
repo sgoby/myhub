@@ -27,11 +27,11 @@ Please [get the latest version of the RPM installation package from the release 
 
 ### Fragmentation
 
-- Supports hash and range segmentation by integer.
-- Supports date-segmentation by year, month, and day.
+- Support hash and range segmentation by integer.
+- Support date-segmentation by year, month, and day.
 - Support cross-node sub-tables, sub-tables can be distributed in different nodes.
 - Support cross-nodes execute aggregate functions count, sum, max, and min.
-- Supports the join operation of a single sub-table,it must the join operation of the fragmentation table and
+- Support the join operation of a single sub-table,it must the join operation of the fragmentation table and
   another single table, and on the same node database.
 - Support cross-node: (order by,group by,limit) operations.
 - Support for distributed transactions (low XA).
@@ -113,7 +113,7 @@ Record SQL, when execute use time more than config time (ms),Default:0 represent
         <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
     </users>
 
-Description:
+**Description:**
 - 'name' Represent: client user name of connect Myhub.
 - 'passwrod' Represent: client passwrod of connect Myhub.
 - 'charset' Represent: client charset of connect Myhub. Default:UTF-8
@@ -143,7 +143,7 @@ Add Mysql node host on Myhub.
         </dataBases>
     </node>
 
-Description:
+**Description:**
 - 'host' Represent: backend mysql host config.
 - 'host' -> 'type' Represent: node type. value:[write|read]
 - 'host' -> 'name' Represent: backend mysql host name.
@@ -187,17 +187,17 @@ Add schema database to Myhub.
 ### Segmentation rule:
 
 Myhub support three kinds of fragmentation rules:
-1. hash
+**1. hash**
 
 This rule uses the modulo operation. This algorithm can divide adjacent data into the same slice according to the 'rowLimit' value in config,
 which reduces the difficulty of inserting transaction transaction control.
 
-2. range
+**2. range**
 
 The algorithm of this rule is to divide the table according to the range of the value of the rule key field.
 ex: start <= range < end。
 
-3. date (Year, Month, Day)
+**3. date (Year, Month, Day)**
 
 This rule can be sharded by (year, month, day) and supports multiple date cycles，
 ex: rowLimit="7d" represent every 7 days as a shard, start <= date < end.
@@ -222,7 +222,7 @@ ex: rowLimit="7d" represent every 7 days as a shard, start <= date < end.
         </rule>
     </rules>
 
-Description:
+**Description:**
 - 'rule' Represent: rule config
 - 'name' Represent: rule name, must be guaranteed to be unique.
 - 'ruleType' Represent: rule type. value:[range|hash|date]
