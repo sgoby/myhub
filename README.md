@@ -50,7 +50,7 @@ Please [get the latest version of the RPM installation package from the release 
 
         wget https://github.com/sgoby/myhub/releases/download/0.0.1/myhub-0.0.1-1.x86_64.rpm
         rpm -ivh myhub-0.0.1-1.x86_64.rpm
-        \# Default config file path: /usr/local/myhub/conf/myhub.xml
+        # Default config file path: /usr/local/myhub/conf/myhub.xml
 
 - Start service
 
