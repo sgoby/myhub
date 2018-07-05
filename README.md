@@ -1,59 +1,63 @@
-# MyHub简介
+# MyHub Introduction
 
-MyHub是一个由Go开发高性能MySQL代理中间件项目，MyHub在满足基本的读写分离的功能上，致力于简化MySQL分库分表操作。
-MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真MySql，用管理工具连接到Myhub就如同连接接Mysql一样。
-MyHub能自动停用故障节点数据库，在故障节点数据库恢得重启后Myhub能自动发现并启用节点。  
-请从[release页面获取最新版的RPM安装包](https://github.com/sgoby/myhub/releases)
+MyHub is a high-performance MySQL agent middleware project developed by Golang, MyHub is dedicated to simplifying the MySQL sub-segmentation
+operation in fulfilling the basic functions of read-write separation.
+Compared with other database middleware, MyHub is the most powerful feature to simulate MySql to the maximum extent,
+Connecting to Myhub with management tools is like connecting to Mysql.
+MyHub can automatically disable the faulty node database, and Myhub can automatically discover and enable the node after
+the failed node database is restarted.
+Please [get the latest version of the RPM installation package from the release page.](https://github.com/sgoby/myhub/releases)
 
-![SQLyog 截图](https://github.com/sgoby/myhub/blob/master/doc/sqlyog.png)
+![SQLyog Screenshots](https://github.com/sgoby/myhub/blob/master/doc/sqlyog.png)
 
-### 基础功能
-- 遵守Mysql原生协议，跨语言的通用中间件代理。
-- 支持透明的MySQL连接池，不必每次新建连接。
-- 支持多个slave，slave之间通过权值进行负载均衡。
-- 支持读写分离(需自行配置mysql端主从的数据自动同步，Myhub不负责任何的数据同步问题)。
-- 支持多租户。
-- 支持prepare特性。
-- 支持到后端DB的最大连接数限制。
-- 支持SQL日志及慢日志输出。
-- 支持客户端IP白名单。
-- 支持SQL黑名单机制。
-- 支持字符集设置。
-- 支持last_insert_id功能。
-- 支持show databases,show tables。
+### Basis
+- Comply with the Mysql native protocol and support cross-language.
+- Support MySQL connection pool, no need to create a new connection each time.
+- Support multiple 'Slave', load balancing between 'Slave'。
+- Support for reading and writing separation(Need to configure the mysql master-slave data to automatically synchronize).
+- Support multi-tenancy。
+- Support for 'Prepare' feature。
+- Support for maximum connection limit to backend DB.
+- Support SQL log and slow log output.
+- Support client IP whitelist.
+- Support SQL blacklist mechanism.
+- Support for charset settings.
+- Support last_insert_id。
+- Support Mysql command: show databases,show tables.
 
-### 分片功能
+### Fragmentation
 
-- 支持按整数的hash和range分表方式。
-- 支持按年、月、日维度的时间分表方式。
-- 支持跨节点分表，子表可以分布在不同的节点。
-- 支持跨节点的count,sum,max和min等聚合函数。
-- 支持单个分表的join操作，即支持分表和另一张不分表的join操作。
-- 支持跨节点的order by,group by,limit等操作。
-- 支持分布式事务（弱XA）。
-- 支持数据库直接代理转发。
-- 支持（insert,delete,update,replace）到多个node上的子表。
-- 支持自动在多个node上创建分表。
-- 支持主键自增长ID。
+- Supports hash and range segmentation by integer.
+- Supports date-segmentation by year, month, and day.
+- Support cross-node sub-tables, sub-tables can be distributed in different nodes.
+- Support cross-nodes execute aggregate functions count, sum, max, and min.
+- Supports the join operation of a single sub-table,it must the join operation of the fragmentation table and
+  another single table, and on the same node database.
+- Support cross-node: (order by,group by,limit) operations.
+- Support for distributed transactions (low XA).
+- Support database direct proxy and forwarding.
+- Support (insert,delete,update,replace) to multiple nodes table.
+- Support automatic creation of sub-tables on multiple nodes.
+- Support primary key ID auto increment.
 
-### 安装
+### Install
 
-**RPM安装**
+**RPM install**
 
-- 下载、安装
+- Download & Install
 
         wget https://github.com/sgoby/myhub/releases/download/0.0.1/myhub-0.0.1-1.x86_64.rpm
         rpm -ivh myhub-0.0.1-1.x86_64.rpm
 
-- 启动
+- Start service
 
         service myhub start
 
-**编译安装**
+**Build install**
 
-- 安装Golang、git
+- Install: golang and git
 
-- Linux 上安装(build_linux.sh)
+- Install on Linux (build_linux.sh)
 
         dir=`pwd`
         git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
@@ -62,7 +66,7 @@ MyHub能自动停用故障节点数据库，在故障节点数据库恢得重启
         go build -o bin/myhub src/github.com/sgoby/myhub/cmd/myhub/main.go
         echo Congratulations. Build success!
 
-- Windows 上安装(build_windows.bat)
+- Install on Windows(build_windows.bat)
 
         git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
         set dir=%cd%
@@ -71,61 +75,61 @@ MyHub能自动停用故障节点数据库，在故障节点数据库恢得重启
         echo Congratulations. Build success!
 
 
-# MyHub配置入门
+# MyHub config
 
-### 配本配置：
+### Basis：
 
-启动参数
---cnf 配置文件存放配置文件, 默认'conf/myhub.xml'
-如：myhub.exe --cnf conf/myhub.xml
+Start args
+-cnf configuration file path, Default:'conf/myhub.xml'
+ex：myhub.exe -cnf conf/myhub.xml
 
     <serveListen>0.0.0.0:8520</serveListen>
-MyHub 监听的host和端口,默认端口:8520
+MyHub listener host and port, Default:8520
 
     <workerProcesses>0</workerProcesses>
-工作进程数,默认是0,表示取当前主机的CPU核心数
+The number of worker processes, Default:0 represent use the number of CPU core.
 
     <maxConnections>2048</maxConnections>
-最大连接数,默认是2048
+Myhub maximum number of clients connected,Default:2048
 
-### 日志(log)配置:
+### Log:
 
     <logPath>logs</logPath>
-配置路径，默认是Myhub当前目录下的logs目录
+Log output directory. Default:logs
 
     <logLevel>warn</logLevel>
-日志级别:[debug|info|warn|error] 默认error
+Log level. value:[debug|info|warn|error] Default:error
 
     <logSql>on</logSql>
-是否开启sql语句输出[on|off] 默认off
+SQL log's switch. value:[on|off] Default:off
 
     <slowLogTime>100</slowLogTime>
-开启慢日志（时间单位:毫秒）,默认是0不开启
+Record SQL, when execute use time more than config time (ms),Default:0 represent turn off slow log
 
-### 用户(user)配置:
+### Users:
 
     <users>
         <!-- db1,db2,ip1,ip2 * means any database or ip -->
         <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
     </users>
 
-参数说明：
-- 'name' 连接Myhub的用户名
-- 'passwrod' 连接Myhub的密码
-- 'charset' 字符集
-- 'db' 可使用的逻辑数据库，多个用','分隔，如:'db1,db2'，'*'表示所有逻辑数据库
-- 'ip' 允许连接的客户端ip支持模糊匹配，'\*'表示所有ip；多个用','分隔；默认'127.0.0.1'；如:'192.168.1.20,192.168.2.\*'。
+Description:
+- 'name' Represent: client user name of connect Myhub.
+- 'passwrod' Represent: client passwrod of connect Myhub.
+- 'charset' Represent: client charset of connect Myhub. Default:UTF-8
+- 'db' Represent: schema database  the user can use, multiple separated by','. ex:'db1,db2', '*'represent all. Default:*
+- 'ip' Represent: allow client's IP to connect to Myhub, support any match chart '\*', multiple separated by','; ex:'192.168.1.20,192.168.2.\*', Default:'127.0.0.1'.
 
 
-### 节点(node)配置:
+### Nodes:
 
-添加两个节点主机：host_1，host_2
+Add Mysql node host on Myhub.
 
     <node>
         <hosts>
-            <!-- write only(master) 写库(主库) --->
+            <!-- write only(master) --->
             <host type="write" name="host_1" address="127.0.0.1:3306" user="root" password="123456">
-                <!-- read only(slave) 只读库(从库) --->
+                <!-- read only(slave) --->
                 <!-- <host type="read" name="host_1_1"  address = "192.168.31.231:3306" user = "root" password = "123456" weight="1"/> -->
             </host>
             <host type="write" name="host_2" address="192.168.31.231:3306" user="root" password="123456"/>
@@ -139,25 +143,24 @@ MyHub 监听的host和端口,默认端口:8520
         </dataBases>
     </node>
 
-参数说明：
-- 'host' 节点主机
-- 'host' -> 'type' 读写库类型，值[write|read]
-- 'host' -> 'name' 节点名称
-- 'host' -> 'address' 主机mysql地址
-- 'host' -> 'user' 主机mysql登录用户名
-- 'host' -> 'password' 主机mysql登录密码
-- 'host' -> 'weight' 从库（读库）权值
-- 'dataBase' 节点主机数据库
-- 'dataBase' -> 'name' 节点上的数据库名称
-- 'dataBase' -> 'host' 节点主机名称，对应：'host' -> 'name'
-- 'dataBase' -> 'maxOpenConns' 数据库最大连接数，默认:16
-- 'dataBase' -> 'maxIdleConns' 数据库连接最大空闲数，默认:4
-- 'dataBase' -> 'maxIdleTime' 数据库连接最大空闲时间(时间单位：秒)，默认:60
+Description:
+- 'host' Represent: backend mysql host config.
+- 'host' -> 'type' Represent: node type. value:[write|read]
+- 'host' -> 'name' Represent: backend mysql host name.
+- 'host' -> 'address' Represent: backend mysql host address.
+- 'host' -> 'user' Represent: backend mysql account user.
+- 'host' -> 'password' Represent: backend mysql account password.
+- 'host' -> 'weight' Represent: the weight of slave host.
+- 'dataBase' Represent: backend mysql database config.
+- 'dataBase' -> 'name' Represent: database name.
+- 'dataBase' -> 'host' Represent: host name of the node where the database is located, *Link: 'host' -> 'name'*
+- 'dataBase' -> 'maxOpenConns' Represent: maximum number of connections in the database, Default:16
+- 'dataBase' -> 'maxIdleConns' Represent: database connection maximum idle number, Default:4
+- 'dataBase' -> 'maxIdleTime' Represent: database connection maximum idle time(s), Default:60
 
-### 逻辑库(schema)配置:
+### Schema:
 
-添加两个逻辑数库:db1,test_1;
-其中db1中添加了三个逻辑表:dealer_info,cash_record,api_log;
+Add schema database to Myhub.
 
     <schema>
         <dataBase name="db1" proxyDataBase="lb_ss" blacklistSql="blacklist/db1.sql">
@@ -166,34 +169,38 @@ MyHub 监听的host和端口,默认端口:8520
             <table name="cash_record" ruleKey="add_time" rule="rang_2" createSql="cash_record.sql"/>
             <table name="api_log" ruleKey="id" rule="hash_1" createSql="api_log.sql"/>
         </dataBase>
-        <!-- 直接代理 -->
+        <!-- direct proxy -->
         <dataBase name="test_1" proxyDataBase="test"/>
     </schema>
 
-参数说明：
-- 'dataBase' 逻辑数据库
-- 'dataBase' -> 'name' Myhub 的数据库名
-- 'dataBase' -> 'proxyDataBase' 代理的节点数据库名
-- 'dataBase' -> 'blacklistSql' SQL黑名单语句，多个用";"分隔，"?"表示通配符，值是可以是SQL文件路径，也可以是SQL语句，ex: delete from user where id = ?
-- 'table' 逻辑表
-- 'table' -> 'ruleKey'表示表分片所依赖的字段名
-- 'table' -> 'rule' 分表表分片规则，参见: rules
-- 'table' -> 'createSql' 自动创建分表的create 语句，值是可以是SQL文件路径，也可以是SQL语句
+Description:
+- 'dataBase' Represent: schema database config.
+- 'dataBase' -> 'name' Represent: schema database name.
+- 'dataBase' -> 'proxyDataBase' Represent: the node database name being proxied, use for direct proxy.
+- 'dataBase' -> 'blacklistSql' Represent: SQL blacklist statement, the value can be a SQL file path, or a SQL statement，ex: delete from user where id = ?
+- 'table' Represent: schema table config.
+- 'table' -> 'name' Represent: table name, must be guaranteed to be unique.
+- 'table' -> 'ruleKey' Represent: segmentation rule key, it must be the field name in the table.
+- 'table' -> 'rule' Represent: segmentation rule. [Linke:rules](### Segmentation rule)
+- 'table' -> 'createSql' Represent: automatically create a create statement for the sub-table, the value can be a SQL file path, or a SQL statement.
 
-### 分片规则(rule)配置:
+### Segmentation rule:
 
-Myhub 目前支持三种分片规则:
-1. 固定分片(hash)
+Myhub support three kinds of fragmentation rules:
+1. hash
 
-此规则运用求模运算，此算可以法根据rowLimit参数把相邻的数据分到同一分片，减少插入事务事务控制难度。
+This rule uses the modulo operation. This algorithm can divide adjacent data into the same slice according to the 'rowLimit' value in config,
+which reduces the difficulty of inserting transaction transaction control.
 
-2. 范围约定(range)
+2. range
 
-此分片适用于，提前规划好分片字段某个范围属于哪个分片，start <= range < end。
+The algorithm of this rule is to divide the table according to the range of the value of the rule key field.
+ex: start <= range < end。
 
-3. 按日期（年、月、日）分片(date)
+3. date (Year, Month, Day)
 
-此规则可以按（年、月、日）分片，支持多个日期周期，如: 可以把每7天(rowLimit="7d")作为的一个分片，其它同理，start <= date < end。
+This rule can be sharded by (year, month, day) and supports multiple date cycles，
+ex: rowLimit="7d" represent every 7 days as a shard, start <= date < end.
 
     <rules>
         <rule name="rang_1" ruleType="range" format="%04d">
@@ -215,22 +222,25 @@ Myhub 目前支持三种分片规则:
         </rule>
     </rules>
 
-参数说明：
-- 'rule' 规则
-- 'name' (必需) 规则名称，在逻辑库表配置会用到
-- 'ruleType' (必需) 分片规则[range|hash|date]
-- 'format' (可选) 自动创建分表的后缀名，
+Description:
+- 'rule' Represent: rule config
+- 'name' Represent: rule name, must be guaranteed to be unique.
+- 'ruleType' Represent: rule type. value:[range|hash|date]
+- 'format' Represent: The suffix format of the sub-table when auto create，
 
-        (1. 如果分片规则是range|hash 格式为%d 如：format="%04d" 生成的表名是 table_0001;
-        (2. 如果分片规则是date 格式为[y|m|d] 分别表示年/月/日 可以是组合 如：format="ym" 生成的表名是 table_201805;
+        (1. the 'ruleType' in[range|hash] use format '%d', ex：format="%04d", it will create table whith name tablename_0001;
+        (2. the 'ruleType' equal 'date', use format in[y|m|d], it represent[Year|Month|Day]. ex:format="ym" it will create table whith name tablename_201805;
            
-- 'maxLen' (可选) 仅在hash 规则中有用, hash 取模中的被模数
-- 'shard' 规则分片
-- 'shard' -> 'nodeDataBase' 节点数据库名称，对应节点配置中的 'dataBase' -> 'name'
-- 'shard' -> 'rowLimit' 每个分表的行数限制，具体对每个分片规则其含义如下：
+- 'maxLen' Represent: modulus value, just configured with ruleType = "hash".
+- 'shard' Represent: shard config.
+- 'shard' -> 'nodeDataBase' Represent: associated node database name, the value must be in node database config.
+- 'shard' -> 'rowLimit' Represent: the number of rows per table is limited, and its meaning is as follows:
 
-        (1. range 规则表示每个分表的行数，值类型为数字 如：rowLimit = "100000" 表示每个分表最大行数为100000 条
-        (2. date 规则表示每个分表按时间划分的行数，值为数字和[y|m|d]组合 如：rowLimit = "1ym" 表示每个分表存的数据是一个月
-        (3. hash 规则表示每个分表按hash取模的余数，值类型为数字 如：rowLimit = "2"  10 % 0 和 10 % 1 是存在同一个表中
+        (1. ruleType='range' represent the number of rows per subtable, the value type is a number.
+            ex: rowLimit = "100000" represent the maximum number of rows per table is 100000
+        (2. ruleType='date' represent the number of rows per time table divided by time, the value is a combination of numbers and [y|m|d].
+            ex: rowLimit = "1ym" represents data for one month per sub-segment.
+        (3. ruleType='hash' represent each sub-table is divided by the remainder of the modulo, and the value type is a number.
+            ex: rowLimit = "2" represents  10 % 0 and 10 % 1 will be saved in the same table
 
-- 'shard' -> 'between' 分片在节点数据库的限制范围
+- 'shard' -> 'between' Represent: the range of fragmentation rule values.

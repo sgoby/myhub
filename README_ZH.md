@@ -1,21 +1,26 @@
 # MyHub简介
 
 MyHub是一个由Go开发高性能MySQL代理中间件项目，MyHub在满足基本的读写分离的功能上，致力于简化MySQL分库分表操作。
-MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真MySql。
+MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真MySql，用管理工具连接到Myhub就如同连接接Mysql一样。
+MyHub能自动停用故障节点数据库，在故障节点数据库恢得重启后Myhub能自动发现并启用节点。
+请从[release页面获取最新版的RPM安装包](https://github.com/sgoby/myhub/releases)
+
+![SQLyog 截图](https://github.com/sgoby/myhub/blob/master/doc/sqlyog.png)
 
 ### 基础功能
-- 遵守Mysql原生协议，跨语言的通用中间件代理
+- 遵守Mysql原生协议，跨语言的通用中间件代理。
 - 支持透明的MySQL连接池，不必每次新建连接。
 - 支持多个slave，slave之间通过权值进行负载均衡。
-- 支持读写分离。
+- 支持读写分离(需自行配置mysql端主从的数据自动同步，Myhub不负责任何的数据同步问题)。
 - 支持多租户。
 - 支持prepare特性。
 - 支持到后端DB的最大连接数限制。
 - 支持SQL日志及慢日志输出。
 - 支持客户端IP白名单。
+- 支持SQL黑名单机制。
 - 支持字符集设置。
 - 支持last_insert_id功能。
-- 支持show databases,show tables
+- 支持show databases,show tables。
 
 ### 分片功能
 
@@ -31,6 +36,40 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
 - 支持自动在多个node上创建分表。
 - 支持主键自增长ID。
 
+### 安装
+
+**RPM安装**
+
+- 下载、安装
+
+        wget https://github.com/sgoby/myhub/releases/download/0.0.1/myhub-0.0.1-1.x86_64.rpm
+        rpm -ivh myhub-0.0.1-1.x86_64.rpm
+
+- 启动
+
+        service myhub start
+
+**编译安装**
+
+- 安装Golang、git
+
+- Linux 上安装(build_linux.sh)
+
+        dir=`pwd`
+        git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
+        export GOPATH=$dir
+        echo $GOPATH
+        go build -o bin/myhub src/github.com/sgoby/myhub/cmd/myhub/main.go
+        echo Congratulations. Build success!
+
+- Windows 上安装(build_windows.bat)
+
+        git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
+        set dir=%cd%
+        set GOPATH=%GOPATH%;%dir%
+        go build -o bin/myhub.exe src/github.com/sgoby/myhub/cmd/myhub/main.go
+        echo Congratulations. Build success!
+
 
 # MyHub配置入门
 
@@ -43,6 +82,11 @@ MyHub和其它数据库中间件相比最大特点是做到最大限度的仿真
     <serveListen>0.0.0.0:8520</serveListen>
 MyHub 监听的host和端口,默认端口:8520
 
+    <workerProcesses>0</workerProcesses>
+工作进程数,默认是0,表示取当前主机的CPU核心数
+
+    <maxConnections>2048</maxConnections>
+最大连接数,默认是2048
 
 ### 日志(log)配置:
 
@@ -50,14 +94,13 @@ MyHub 监听的host和端口,默认端口:8520
 配置路径，默认是Myhub当前目录下的logs目录
 
     <logLevel>warn</logLevel>
-日志级别:[debug|info|warn|error]
+日志级别:[debug|info|warn|error] 默认error
 
     <logSql>on</logSql>
-是否开启sql语句输出[on|off]
+是否开启sql语句输出[on|off] 默认off
 
     <slowLogTime>100</slowLogTime>
 开启慢日志（时间单位:毫秒）,默认是0不开启
-
 
 ### 用户(user)配置:
 
@@ -67,12 +110,11 @@ MyHub 监听的host和端口,默认端口:8520
     </users>
 
 参数说明：
-- 'name' 连接myhub的用户名
-- 'passwrod' 连接myhub的密码
+- 'name' 连接Myhub的用户名
+- 'passwrod' 连接Myhub的密码
 - 'charset' 字符集
-- 'db' 可使用的逻辑数据库，多个用","分隔，如:'db1,db2'，'*'表示所有逻辑数据库
-- 'ip' 允许连接的客户端ip，多个用","分隔，如:'192.168.1.20,192.168.1.30'，'*'表示所有ip
-
+- 'db' 可使用的逻辑数据库，多个用','分隔，如:'db1,db2'，'*'表示所有逻辑数据库
+- 'ip' 允许连接的客户端ip支持模糊匹配，'\*'表示所有ip；多个用','分隔；默认'127.0.0.1'；如:'192.168.1.20,192.168.2.\*'。
 
 
 ### 节点(node)配置:
@@ -104,12 +146,13 @@ MyHub 监听的host和端口,默认端口:8520
 - 'host' -> 'address' 主机mysql地址
 - 'host' -> 'user' 主机mysql登录用户名
 - 'host' -> 'password' 主机mysql登录密码
+- 'host' -> 'weight' 从库（读库）权值
 - 'dataBase' 节点主机数据库
 - 'dataBase' -> 'name' 节点上的数据库名称
 - 'dataBase' -> 'host' 节点主机名称，对应：'host' -> 'name'
-- 'dataBase' -> 'maxOpenConns' 数据库最大连接数
-- 'dataBase' -> 'maxIdleConns' 数据库连接最大空闲数
-- 'dataBase' -> 'maxIdleTime' 数据库连接最大空闲时间(时间单位：秒)
+- 'dataBase' -> 'maxOpenConns' 数据库最大连接数，默认:16
+- 'dataBase' -> 'maxIdleConns' 数据库连接最大空闲数，默认:4
+- 'dataBase' -> 'maxIdleTime' 数据库连接最大空闲时间(时间单位：秒)，默认:60
 
 ### 逻辑库(schema)配置:
 
@@ -117,7 +160,7 @@ MyHub 监听的host和端口,默认端口:8520
 其中db1中添加了三个逻辑表:dealer_info,cash_record,api_log;
 
     <schema>
-        <dataBase name="db1" proxyDataBase="lb_ss">
+        <dataBase name="db1" proxyDataBase="lb_ss" blacklistSql="blacklist/db1.sql">
             <!--  rule: hash | range | date_month | date_day  -->
             <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="dealer_info.sql"/>
             <table name="cash_record" ruleKey="add_time" rule="rang_2" createSql="cash_record.sql"/>
@@ -128,15 +171,30 @@ MyHub 监听的host和端口,默认端口:8520
     </schema>
 
 参数说明：
-- 'name' Myhub 的数据库名
-- 'proxyDataBase' 代理的节点数据库名
-- 'ruleKey'表示表分片所依赖的字段名
-- 'rule' 分表表分片规则，参见: rules
-- 'createSql' 自动创建分表的create 语句
+- 'dataBase' 逻辑数据库
+- 'dataBase' -> 'name' Myhub 的数据库名(必须唯一)
+- 'dataBase' -> 'proxyDataBase' 代理的节点数据库名
+- 'dataBase' -> 'blacklistSql' SQL黑名单语句，多个用";"分隔，"?"表示通配符，值是可以是SQL文件路径，也可以是SQL语句，ex: delete from user where id = ?
+- 'table' 逻辑表
+- 'table' -> 'name' 表名称(必须唯一)
+- 'table' -> 'ruleKey'表示表分片所依赖的字段名
+- 'table' -> 'rule' 分表表分片规则，参见: rules
+- 'table' -> 'createSql' 自动创建分表的create 语句，值是可以是SQL文件路径，也可以是SQL语句
 
 ### 分片规则(rule)配置:
 
-myhub 目前支持hash、range、date(年、月、日)三种分片规则
+Myhub 目前支持三种分片规则:
+1. 固定分片(hash)
+
+此规则运用求模运算，此算可以法根据rowLimit参数把相邻的数据分到同一分片，减少插入事务事务控制难度。
+
+2. 范围约定(range)
+
+此分片适用于，提前规划好分片字段某个范围属于哪个分片，start <= range < end。
+
+3. 按日期（年、月、日）分片(date)
+
+此规则可以按（年、月、日）分片，支持多个日期周期，如: 可以把每7天(rowLimit="7d")作为的一个分片，其它同理，start <= date < end。
 
     <rules>
         <rule name="rang_1" ruleType="range" format="%04d">
@@ -163,8 +221,10 @@ myhub 目前支持hash、range、date(年、月、日)三种分片规则
 - 'name' (必需) 规则名称，在逻辑库表配置会用到
 - 'ruleType' (必需) 分片规则[range|hash|date]
 - 'format' (可选) 自动创建分表的后缀名，
-           如果分片规则是range|hash 格式为%d 如：format="%04d" 生成的表名是 table_0001;
-           如果分片规则是date 格式为[y|m|d] 分别表示年/月/日 可以是组合 如：format="ym" 生成的表名是 table_201805;
+
+        (1. 如果分片规则是range|hash 格式为%d 如：format="%04d" 生成的表名是 table_0001;
+        (2. 如果分片规则是date 格式为[y|m|d] 分别表示年/月/日 可以是组合 如：format="ym" 生成的表名是 table_201805;
+
 - 'maxLen' (可选) 仅在hash 规则中有用, hash 取模中的被模数
 - 'shard' 规则分片
 - 'shard' -> 'nodeDataBase' 节点数据库名称，对应节点配置中的 'dataBase' -> 'name'
@@ -174,4 +234,4 @@ myhub 目前支持hash、range、date(年、月、日)三种分片规则
         (2. date 规则表示每个分表按时间划分的行数，值为数字和[y|m|d]组合 如：rowLimit = "1ym" 表示每个分表存的数据是一个月
         (3. hash 规则表示每个分表按hash取模的余数，值类型为数字 如：rowLimit = "2"  10 % 0 和 10 % 1 是存在同一个表中
 
-- 'shard' -> 'between' 分片在节点数据库的限制范围
+- 'shard' -> 'between' 分片在节点数据的限制范围
