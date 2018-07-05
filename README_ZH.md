@@ -1,3 +1,5 @@
+[English](README.md)   [中文](README_ZH.md)
+
 # MyHub简介
 
 MyHub是一个由Go开发高性能MySQL代理中间件项目，MyHub在满足基本的读写分离的功能上，致力于简化MySQL分库分表操作。
