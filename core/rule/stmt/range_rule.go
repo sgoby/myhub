@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"time"
 	"strings"
+	"github.com/sgoby/myhub/utils/ustring"
 )
 
 type RuleRange struct {
@@ -276,7 +277,7 @@ func (this *RuleRange)strconvInt64Entity(expr sqlparser.Expr) (int64,error){
 	buf := sqlparser.NewTrackedBuffer(nil)
 	expr.Format(buf)
 	if this.rangeType == RANGE_NUMERIE{
-		startNum, err := strconv.ParseInt(buf.String(), 10, 64)
+		startNum, err := strconv.ParseInt(ustring.Trim(string(buf.String()),"'","\"","`"), 10, 64)
 		if err != nil {
 			return 0, err
 		}
@@ -284,10 +285,7 @@ func (this *RuleRange)strconvInt64Entity(expr sqlparser.Expr) (int64,error){
 	}
 	if this.rangeType == RANGE_DATA {
 		var err error
-		dateTimeStr := buf.String()
-		dateTimeStr = strings.TrimSpace(dateTimeStr)
-		dateTimeStr = strings.Trim(dateTimeStr,"'")
-		dateTimeStr = strings.Trim(dateTimeStr,"\"")
+		dateTimeStr := ustring.Trim(string(buf.String()),"'","\"","`")
 		dateTimeStr,err = optimizationDatetime(dateTimeStr);
 		if err != nil {
 			return 0, err

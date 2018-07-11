@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"github.com/golang/glog"
 	"time"
+	"github.com/sgoby/myhub/utils/ustring"
 )
 
 //
@@ -189,7 +190,8 @@ func (c *Conn) parseComPrepareExecute(data []byte) (*PrepareExecute, error) {
 	}
 	//
 	if len(data) < (pos + int(nullBitmapLen) + 1) {
-		return nil, fmt.Errorf("data len less %d", pos+int(nullBitmapLen)+1)
+		//glog.Info(data)
+		return nil, fmt.Errorf("data %d len less %d", len(data),pos+int(nullBitmapLen)+1)
 	}
 	prepareExecute.NullBitmaps, pos, _ = readBytes(data, pos, int(nullBitmapLen)) // data[pos : pos + int(nullBitmapLen)]
 	//
@@ -199,7 +201,7 @@ func (c *Conn) parseComPrepareExecute(data []byte) (*PrepareExecute, error) {
 		//type of each parameter, length: num-params * 2
 		typeLen := stmt.Numparams * 2
 		if len(data) < (pos + int(typeLen) + 1) {
-			return nil, fmt.Errorf("data len less %d", pos+int(typeLen)+1)
+			return nil, fmt.Errorf("data %d len less %d", len(data),pos+int(typeLen)+1)
 		}
 
 		var typeBuf []byte
@@ -339,7 +341,7 @@ func (c *Conn) getValueBinary(val sqltypes.Value) (buff []byte, err error) {
 	case sqltypes.Uint8: //{typ: 1, flags: mysqlUnsigned},
 		return val.Raw(), nil
 	case sqltypes.Float64: //{typ: 5},//{typ: 4},
-		num, err := strconv.ParseFloat(string(val.Raw()), 64)
+		num, err := strconv.ParseFloat(ustring.Trim(string(val.Raw()),"'","\"","`"), 64)
 		if err != nil {
 			return nil, err
 		}
@@ -348,7 +350,7 @@ func (c *Conn) getValueBinary(val sqltypes.Value) (buff []byte, err error) {
 		pos := writeUint64(buff, 0, bits)
 		return buff[0:pos], nil
 	case sqltypes.Float32: //{typ: 5},//{typ: 4},
-		num, err := strconv.ParseFloat(string(val.Raw()), 32)
+		num, err := strconv.ParseFloat(ustring.Trim(string(val.Raw()),"'","\"","`"), 32)
 		if err != nil {
 			return nil, err
 		}
@@ -359,7 +361,7 @@ func (c *Conn) getValueBinary(val sqltypes.Value) (buff []byte, err error) {
 	case sqltypes.Null: //{typ: 6, flags: mysqlBinary},
 		return nil, nil
 	case sqltypes.Int16, sqltypes.Uint16:
-		num, err := strconv.ParseInt(string(val.Raw()), 10, 16)
+		num, err := strconv.ParseInt(ustring.Trim(string(val.Raw()),"'","\"","`") , 10, 16)
 		if err != nil {
 			return nil, err
 		}
@@ -367,7 +369,7 @@ func (c *Conn) getValueBinary(val sqltypes.Value) (buff []byte, err error) {
 		pos := writeUint16(buff, 0, uint16(num))
 		return buff[0:pos], nil
 	case sqltypes.Int32, sqltypes.Uint32:
-		num, err := strconv.ParseInt(string(val.Raw()), 10, 32)
+		num, err := strconv.ParseInt(ustring.Trim(string(val.Raw()),"'","\"","`"), 10, 32)
 		if err != nil {
 			return nil, err
 		}
@@ -376,7 +378,7 @@ func (c *Conn) getValueBinary(val sqltypes.Value) (buff []byte, err error) {
 		return buff[0:pos], nil
 	case sqltypes.Int24, sqltypes.Uint24: //
 	case sqltypes.Int64, sqltypes.Uint64: //{typ: 8},
-		num, err := strconv.ParseInt(string(val.Raw()), 10, 64)
+		num, err := strconv.ParseInt(ustring.Trim(string(val.Raw()),"'","\"","`"), 10, 64)
 		if err != nil {
 			return nil, err
 		}
@@ -404,7 +406,7 @@ func (c *Conn) getValueBinary(val sqltypes.Value) (buff []byte, err error) {
 		micro_second (4) -- micro-seconds
 		*/
 		//str := string(val.Raw())
-		t, err := time.Parse("2006-01-02 15:04:05", string(val.Raw()))
+		t, err := time.Parse("2006-01-02 15:04:05", ustring.Trim(string(val.Raw()),"'","\"","`"))
 		if err != nil {
 			glog.Info(err)
 			return []byte{0x00}, nil

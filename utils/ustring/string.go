@@ -16,7 +16,10 @@ limitations under the License.
 
 package ustring
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 func IsNumeric(str string) bool{
 	reg,err := regexp.Compile("\\D+?")
@@ -25,4 +28,13 @@ func IsNumeric(str string) bool{
 	}
 	//
 	return reg.MatchString(str)
+}
+
+//
+func Trim(str string,argus... string ) string{
+	str = strings.TrimSpace(str)
+	for _,c := range argus{
+		str = strings.Trim(str,c)
+	}
+	return str
 }
