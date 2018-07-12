@@ -21,59 +21,46 @@ import (
 	"github.com/sgoby/myhub/config"
 	"github.com/sgoby/myhub/core/server"
 	"flag"
-	"runtime"
 	"github.com/sgoby/myhub/core/client"
 	"github.com/golang/glog"
 	"fmt"
 	"os"
 	"os/signal"
-	 _"net/http/pprof"
+	_ "net/http/pprof"
 	"runtime/pprof"
 	"syscall"
 	"net/http"
-	"strings"
+	"io"
 )
 
-var appConf *config.Config
+const (
+	production  = "production"
+	development = "development"
+)
+
+const (
+	SIGUSR1 = syscall.Signal(0xa)
+	SIGUSR2 = syscall.Signal(0xc)
+)
+
+var env *string
+var configFilePath *string
 
 func init() {
-	var err error;
-	configFilePath := flag.String("cnf", "conf/myhub.xml", "setting config file")
+	configFilePath = flag.String("cnf", "conf/myhub.xml", "setting config file")
+	env = flag.String("env", "development", "program environment")
 	flag.Parse()
-	appConf, err = config.ParseConfig(*configFilePath)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
-	}
-	err = os.MkdirAll(appConf.LogPath, os.ModeDir)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
-	}
-	logCnf := glog.LogConfig{}
-	logCnf.LogDir = appConf.LogPath
-	if strings.ToLower(appConf.LogSql) == "on" {
-		logCnf.Query = true
-	}
-	if appConf.SlowLogTime > 0 {
-		logCnf.Slow = true
-	}
-	logCnf.DefaultLV = appConf.LogLevel
-	glog.InitWithCnf(logCnf)
-	//
-	//runtime.MemProfileRate = 1
 }
 
 func main() {
+	appConf, err := config.ParseConfig(*configFilePath,false)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
 	if err := core.App().LoadConfig(*appConf); err != nil {
 		glog.Exit(err)
 		return
-	}
-	//debug.SetGCPercent(5)
-	if appConf.WorkerProcesses > 0 {
-		runtime.GOMAXPROCS(appConf.WorkerProcesses)
-	} else {
-		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 	//
 	c := client.NewDefaultConnector()
@@ -81,9 +68,11 @@ func main() {
 		glog.Exit(err)
 		return
 	}
-	go func() {
-		http.ListenAndServe("localhost:6060", nil)
-	}()
+	if *env == development {
+		go func() {
+			http.ListenAndServe("localhost:6060", nil)
+		}()
+	}
 	//
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc,
@@ -91,6 +80,8 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT,
 		syscall.SIGPIPE,
+		SIGUSR1,
+		SIGUSR2,
 	)
 	//
 	go func() {
@@ -103,6 +94,9 @@ func main() {
 				glog.Exit("MyHub close ...")
 			} else if sig == syscall.SIGPIPE {
 				glog.Info("Ignore broken pipe signal")
+			} else if sig == SIGUSR1 {
+				glog.Warning("reload config......")
+				reloadConfig()
 			}
 		}
 	}()
@@ -111,6 +105,24 @@ func main() {
 	core.App().Run(serverHandle)
 }
 
+//
+func reloadConfig() {
+	newConf, err := config.ParseConfig(*configFilePath,true)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if err := core.App().TestConfig(*newConf);err != nil{
+		fmt.Println(err)
+		return
+	}
+	if err := core.App().LoadConfig(*newConf); err != nil {
+		fmt.Println(err)
+		return
+	}
+}
+
+//
 func saveHeapProfile() {
 	//runtime.GC()
 	f, err := os.OpenFile("myhub.prof", os.O_RDWR|os.O_CREATE, 0644)

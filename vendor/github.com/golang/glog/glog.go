@@ -410,7 +410,15 @@ type LogConfig struct {
 	LogDir       string
 }
 
+func init(){
+	logging = loggingT{}
+	logging.sig = make(chan int,1)
+}
+
 func InitWithCnf(cnf LogConfig) {
+	logging.mu.Lock()
+	defer logging.mu.Unlock()
+	//
 	logging.slow = cnf.Slow
 	logging.alsoToStderr = cnf.AlsoToStderr
 	logging.query = cnf.Query
@@ -488,6 +496,7 @@ type loggingT struct {
 	defaultLV int
 	slow      bool
 	query     bool
+	sig       chan int
 }
 
 // buffer holds a byte Buffer for reuse. The zero value is ready for use.
@@ -568,6 +577,9 @@ where the fields are defined as follows:
 	msg              The user-supplied message
 */
 func (l *loggingT) header(s severity, depth int) (*buffer, string, int) {
+	if l.defaultLV >= int(warningLog){
+		return l.formatHeader(s, "", 0), "", 0
+	}
 	_, file, line, ok := runtime.Caller(3 + depth)
 	if !ok {
 		file = "???"
@@ -591,7 +603,11 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 		s = infoLog // for safety.
 	}
 	buf := l.getBuffer()
-	buf.WriteString(fmt.Sprintf("[%c %s %d %s %d] ",severityChar[s],now.Format("2006-01-02 15:04:05.999999999"),pid,file,line))
+	if len(file) > 0 && line > 0 {
+		buf.WriteString(fmt.Sprintf("[%c %s %d %s %d] ", severityChar[s], now.Format("2006-01-02 15:04:05.999999999"), pid, file, line))
+	}else{
+		buf.WriteString(fmt.Sprintf("[%c %s %d] ", severityChar[s], now.Format("2006-01-02 15:04:05.999999999"), pid))
+	}
 	return buf
 }
 
@@ -880,8 +896,13 @@ const flushInterval = 30 * time.Second
 
 // flushDaemon periodically flushes the log file buffers.
 func (l *loggingT) flushDaemon() {
-	for _ = range time.NewTicker(flushInterval).C {
-		l.lockAndFlushAll()
+	select{
+	case l.sig <- 1:
+		for _ = range time.NewTicker(flushInterval).C {
+			l.lockAndFlushAll()
+		}
+		<- l.sig
+	default:
 	}
 }
 

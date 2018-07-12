@@ -126,14 +126,16 @@ type Rule struct {
 // record current config file dir
 var confDir string
 //
-func ParseConfig(cnfPath string) (conf *Config, err error) {
+func ParseConfig(cnfPath string,reload bool) (conf *Config, err error) {
 	if len(cnfPath) < 1 {
 		conf = creatDefaultConfig()
 		return
 	}
-	cnfPath, _, err = optFilePath(cnfPath)
-	if err != nil {
-		return nil, err
+	if !reload{
+		cnfPath, _, err = optFilePath(cnfPath)
+		if err != nil{
+			return nil, err
+		}
 	}
 	confDir = filepath.Dir(cnfPath)
 	//
