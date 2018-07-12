@@ -30,7 +30,6 @@ import (
 	"runtime/pprof"
 	"syscall"
 	"net/http"
-	"io"
 )
 
 const (
