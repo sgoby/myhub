@@ -73,7 +73,7 @@ func (this *ServerHandler) QueryTimeRecord(query string, startTime time.Time) {
 	if slowTime <= 0 {
 		return
 	}
-	millisecond := float64(time.Now().Sub(startTime).Nanoseconds()) / float64(1000000)
+	millisecond := float64(time.Now().Sub(startTime).Nanoseconds()) / float64(time.Millisecond)
 	if millisecond < float64(slowTime) {
 		return
 	}
