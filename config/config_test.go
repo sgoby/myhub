@@ -23,7 +23,7 @@ import (
 
 func TestXmlConfig(t *testing.T){
 
-	mConfig,err := ParseConfig("conf.xml")
+	mConfig,err := ParseConfig("conf.xml",true)
 	if err != nil{
 		fmt.Println(err)
 		return

@@ -45,8 +45,12 @@ func init() {
 //
 func initMapFile() error {
 	var err error
+	currentPath := getCurrentDirectory()
 	dir := "data"
-	err = os.MkdirAll("data",os.ModeDir)
+	if len(currentPath) > 0{
+		dir = filepath.Join(currentPath, dir)
+	}
+	err = os.MkdirAll(dir,os.ModeDir)
 	if err != nil {
 		return err
 	}
@@ -61,6 +65,14 @@ func initMapFile() error {
 		return nil
 	}
 	return err
+}
+//
+func getCurrentDirectory() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return  filepath.FromSlash(dir)
 }
 //
 func NewAutoIncrement(key string, start, step int64) (*AutoIncrement) {
