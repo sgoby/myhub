@@ -119,8 +119,6 @@ func (this *Application) TestConfig(cnf config.Config) (err error) {
 func (this *Application) LoadConfig(cnf config.Config) (err error) {
 	if cnf.WorkerProcesses > 0 {
 		runtime.GOMAXPROCS(cnf.WorkerProcesses)
-	} else {
-		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 	//
 	initglog(cnf)
