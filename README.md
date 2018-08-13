@@ -10,7 +10,7 @@ MyHub can automatically disable the faulty node database, and Myhub can automati
 the failed node database is restarted.
 Please [get the latest version of the RPM installation package from the release page.](https://github.com/sgoby/myhub/releases)
 
-![SQLyog Screenshots](https://github.com/sgoby/myhub/blob/master/doc/sqlyog.png)
+![SQLyog Screenshots](https://raw.githubusercontent.com/sgoby/myhub/master/doc/sqlyog.png)
 
 ### Basis
 - Comply with the Mysql native protocol and support cross-language.
