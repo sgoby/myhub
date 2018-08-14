@@ -80,37 +80,44 @@ MyHub能自动停用故障节点数据库，在故障节点数据库恢重启后
 启动参数
 --cnf 配置文件存放配置文件, 默认'conf/myhub.xml'
 如：myhub.exe --cnf conf/myhub.xml
-
-    <serveListen>0.0.0.0:8520</serveListen>
+```xml
+<serveListen>0.0.0.0:8520</serveListen>
+```
 MyHub 监听的host和端口,默认端口:8520
-
-    <workerProcesses>0</workerProcesses>
+```xml
+<workerProcesses>0</workerProcesses>
+```
 工作进程数,默认是0,表示取当前主机的CPU核心数
-
-    <maxConnections>2048</maxConnections>
+```xml
+<maxConnections>2048</maxConnections>
+```
 最大连接数,默认是2048
 
 ### 日志(log)配置:
-
-    <logPath>logs</logPath>
+```xml
+<logPath>logs</logPath>
+```
 配置路径，默认是Myhub当前目录下的logs目录
-
-    <logLevel>warn</logLevel>
+```xml
+<logLevel>warn</logLevel>
+```
 日志级别:[debug|info|warn|error] 默认error
-
-    <logSql>on</logSql>
+```xml
+<logSql>on</logSql>
+```
 是否开启sql语句输出[on|off] 默认off
-
-    <slowLogTime>100</slowLogTime>
+```xml
+<slowLogTime>100</slowLogTime>
+```
 开启慢日志（时间单位:毫秒）,默认是0不开启
 
 ### 用户(user)配置:
-
-    <users>
-        <!-- db1,db2,ip1,ip2 * means any database or ip -->
-        <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
-    </users>
-
+```xml
+<users>
+    <!-- db1,db2,ip1,ip2 * means any database or ip -->
+    <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
+</users>
+```
 参数说明：
 - 'name' 连接Myhub的用户名
 - 'passwrod' 连接Myhub的密码
