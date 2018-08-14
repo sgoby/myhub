@@ -85,37 +85,44 @@ Please [get the latest version of the RPM installation package from the release 
 Start args
 -cnf configuration file path, Default:'conf/myhub.xml'
 ex：myhub.exe -cnf conf/myhub.xml
-
-    <serveListen>0.0.0.0:8520</serveListen>
+```xml
+<serveListen>0.0.0.0:8520</serveListen>
+```
 MyHub listener host and port, Default:8520
-
-    <workerProcesses>0</workerProcesses>
+```xml
+<workerProcesses>0</workerProcesses>
+```
 The number of worker processes, Default:0 represent use the number of CPU core.
-
-    <maxConnections>2048</maxConnections>
+```xml
+<maxConnections>2048</maxConnections>
+```
 Myhub maximum number of clients connected,Default:2048
 
 ### Log:
-
-    <logPath>logs</logPath>
+```xml
+<logPath>logs</logPath>
+```
 Log output directory. Default:logs
-
-    <logLevel>warn</logLevel>
+```xml
+<logLevel>warn</logLevel>
+```
 Log level. value:[debug|info|warn|error] Default:error
-
-    <logSql>on</logSql>
+```xml
+<logSql>on</logSql>
+```
 SQL log's switch. value:[on|off] Default:off
-
-    <slowLogTime>100</slowLogTime>
+```xml
+<slowLogTime>100</slowLogTime>
+```
 Record SQL, when execute use time more than config time (ms),Default:0 represent turn off slow log
 
 ### Users:
-
-    <users>
-        <!-- db1,db2,ip1,ip2 * means any database or ip -->
-        <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
-    </users>
-
+```xml
+<users>
+    <!-- db1,db2,ip1,ip2 * means any database or ip -->
+    <user name="root" passwrod="123456" charset="utf-8" db="db1" ip="*"/>
+</users>
+```
 **Description:**
 - 'name' Represent: client user name of connect Myhub.
 - 'passwrod' Represent: client passwrod of connect Myhub.
@@ -127,25 +134,25 @@ Record SQL, when execute use time more than config time (ms),Default:0 represent
 ### Nodes:
 
 Add Mysql node host on Myhub.
-
-    <node>
-        <hosts>
-            <!-- write only(master) --->
-            <host type="write" name="host_1" address="127.0.0.1:3306" user="root" password="123456">
-                <!-- read only(slave) --->
-                <!-- <host type="read" name="host_1_1"  address = "192.168.31.231:3306" user = "root" password = "123456" weight="1"/> -->
-            </host>
-            <host type="write" name="host_2" address="192.168.31.231:3306" user="root" password="123456"/>
-        </hosts>
-        <dataBases>
-            <dataBase name="test" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
-            <dataBase name="shard_01" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
-            <dataBase name="shard_02" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
-            <dataBase name="lb_ss" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
-            <dataBase name="lb_livegame" host="host_2" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
-        </dataBases>
-    </node>
-
+```xml
+<node>
+    <hosts>
+        <!-- write only(master) --->
+        <host type="write" name="host_1" address="127.0.0.1:3306" user="root" password="123456">
+            <!-- read only(slave) --->
+            <!-- <host type="read" name="host_1_1"  address = "192.168.31.231:3306" user = "root" password = "123456" weight="1"/> -->
+        </host>
+        <host type="write" name="host_2" address="192.168.31.231:3306" user="root" password="123456"/>
+    </hosts>
+    <dataBases>
+        <dataBase name="test" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+        <dataBase name="shard_01" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+        <dataBase name="shard_02" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+        <dataBase name="lb_ss" host="host_1" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+        <dataBase name="lb_livegame" host="host_2" maxOpenConns="16" maxIdleConns="4" maxIdleTime="30"/>
+    </dataBases>
+</node>
+```
 **Description:**
 - 'host' Represent: backend mysql host config.
 - 'host' -> 'type' Represent: node type. value:[write|read]
@@ -164,18 +171,18 @@ Add Mysql node host on Myhub.
 ### Schema:
 
 Add schema database to Myhub.
-
-    <schema>
-        <dataBase name="db1" proxyDataBase="lb_ss" blacklistSql="blacklist/db1.sql">
-            <!--  rule: hash | range | date_month | date_day  -->
-            <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="dealer_info.sql"/>
-            <table name="cash_record" ruleKey="add_time" rule="rang_2" createSql="cash_record.sql"/>
-            <table name="api_log" ruleKey="id" rule="hash_1" createSql="api_log.sql"/>
-        </dataBase>
-        <!-- direct proxy -->
-        <dataBase name="test_1" proxyDataBase="test"/>
-    </schema>
-
+```xml
+<schema>
+    <dataBase name="db1" proxyDataBase="lb_ss" blacklistSql="blacklist/db1.sql">
+        <!--  rule: hash | range | date_month | date_day  -->
+        <table name="dealer_info" ruleKey="id" rule="rang_1" createSql="dealer_info.sql"/>
+        <table name="cash_record" ruleKey="add_time" rule="rang_2" createSql="cash_record.sql"/>
+        <table name="api_log" ruleKey="id" rule="hash_1" createSql="api_log.sql"/>
+    </dataBase>
+    <!-- direct proxy -->
+    <dataBase name="test_1" proxyDataBase="test"/>
+</schema>
+```
 **Description:**
 - 'dataBase' Represent: schema database config.
 - 'dataBase' -> 'name' Represent: schema database name.
@@ -205,27 +212,27 @@ ex: start <= range < end。
 
 This rule can be sharded by (year, month, day) and supports multiple date cycles，
 ex: rowLimit="7d" represent every 7 days as a shard, start <= date < end.
-
-    <rules>
-        <rule name="rang_1" ruleType="range" format="%04d">
-            <!-- tableRowLimit : 2d,m,y,h-->
-            <shard nodeDataBase="test" rowLimit="10000" between="1-8" />
-            <shard nodeDataBase="shard_01" rowLimit="10000" between="8-10" />
-        </rule>
-        <rule name="rang_2" ruleType="date" format="ym">
-            <!-- tableRowLimit : 2d,m,y,h-->
-            <shard nodeDataBase="test" rowLimit="1m" between="201801-201901" />
-        </rule>
-        <!-- 'maxLen' represents the count of hash shard total, default 1024 -->
-        <rule name="hash_1" ruleType="hash" format="%04d"  maxLen = "12">
-            <!-- 'rowLimit' represents every shard table continuous rows count split by 'ruleKey', default 1;
-                 'between' represents the hash mod value range. ex:'between="0-3",ruleKey's value is 10,
-                 and 'maxlen'= 10, 10%3 = 1,it menas in the between  0-3 -->
-            <shard nodeDataBase="test" rowLimit="2" between="0-6" />
-            <shard nodeDataBase="shard_01" rowLimit="2" between="6-12" />
-        </rule>
-    </rules>
-
+```xml
+<rules>
+    <rule name="rang_1" ruleType="range" format="%04d">
+        <!-- tableRowLimit : 2d,m,y,h-->
+        <shard nodeDataBase="test" rowLimit="10000" between="1-8" />
+        <shard nodeDataBase="shard_01" rowLimit="10000" between="8-10" />
+    </rule>
+    <rule name="rang_2" ruleType="date" format="ym">
+        <!-- tableRowLimit : 2d,m,y,h-->
+        <shard nodeDataBase="test" rowLimit="1m" between="201801-201901" />
+    </rule>
+    <!-- 'maxLen' represents the count of hash shard total, default 1024 -->
+    <rule name="hash_1" ruleType="hash" format="%04d"  maxLen = "12">
+        <!-- 'rowLimit' represents every shard table continuous rows count split by 'ruleKey', default 1;
+             'between' represents the hash mod value range. ex:'between="0-3",ruleKey's value is 10,
+             and 'maxlen'= 10, 10%3 = 1,it menas in the between  0-3 -->
+        <shard nodeDataBase="test" rowLimit="2" between="0-6" />
+        <shard nodeDataBase="shard_01" rowLimit="2" between="6-12" />
+    </rule>
+</rules>
+```
 **Description:**
 - 'rule' Represent: rule config
 - 'name' Represent: rule name, must be guaranteed to be unique.
