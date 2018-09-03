@@ -261,7 +261,9 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 		} else {
 			tbNameExpr, ok := nStmt.From[0].(*sqlparser.AliasedTableExpr)
 			if ok {
+				glog.Info("unKnow Select, not support:", tbNameExpr)
 				if tbn, ok := tbNameExpr.Expr.(sqlparser.TableName); ok {
+					//
 					// DUAL is purely for the convenience of people who require that all SELECT statements
 					// should have FROM and possibly other clauses. MySQL may ignore the clauses. MySQL
 					// does not require FROM DUAL if no tables are referenced.
@@ -451,6 +453,11 @@ func (this *Connector) getSchemaTable(pExpr sqlparser.TableExpr) (*schema.Table,
 				return nil, err
 			}
 			return db.GetTable(tbName), nil
+		}
+		if tbn, ok := expr.Expr.(*sqlparser.Subquery); ok {
+			if stmt,ok := tbn.Select.(*sqlparser.Select);ok{
+				return this.getSchemaTable(stmt.From[0])
+			}
 		}
 	case *sqlparser.ParenTableExpr:
 	case *sqlparser.JoinTableExpr:

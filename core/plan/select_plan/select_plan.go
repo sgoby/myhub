@@ -34,7 +34,7 @@ type selectPlanBuilder struct {
 }
 
 //
-func NewSelectPlanBuilder(stmt sqlparser.Select) (*selectPlanBuilder,error) {
+func NewSelectPlanBuilder(stmt sqlparser.Select) (*selectPlanBuilder, error) {
 	var offset, rowcount int64
 	var err error
 	if stmt.Limit != nil {
@@ -57,11 +57,11 @@ func NewSelectPlanBuilder(stmt sqlparser.Select) (*selectPlanBuilder,error) {
 	}
 	//
 	builder := &selectPlanBuilder{
-		stmt: &stmt,
-		limitOffset:offset,
-		limitRowcount:rowcount,
+		stmt:          &stmt,
+		limitOffset:   offset,
+		limitRowcount: rowcount,
 	}
-	return builder,nil
+	return builder, nil
 }
 
 //
@@ -91,9 +91,9 @@ func BuildSelectPlan(tb *schema.Table, stmt *sqlparser.Select, manager *rule.Rul
 	}
 	//
 	builder := &selectPlanBuilder{
-		stmt: stmt,
-		limitOffset:offset,
-		limitRowcount:rowcount,
+		stmt:          stmt,
+		limitOffset:   offset,
+		limitRowcount: rowcount,
 	}
 	//
 	expr, isFound := builder.getWhereExprByKey(tb.GetRuleKey())
@@ -106,13 +106,13 @@ func BuildSelectPlan(tb *schema.Table, stmt *sqlparser.Select, manager *rule.Rul
 		return nil, err
 	}
 	//If no matching rule, find all, just for select statement.
-	if isFound && (rResults == nil || len(rResults) < 1){
+	if isFound && (rResults == nil || len(rResults) < 1) {
 		rResults, err = manager.GetShardRule(tb.GetRuleName(), nil)
 		if err != nil {
 			return nil, err
 		}
 		//default select on first node when not matching rule
-		if len(rResults) > 0{
+		if len(rResults) > 0 {
 			rResults = rResults[0:1]
 			if len(rResults[0].TbSuffixs) > 0 {
 				rResults[0].TbSuffixs = rResults[0].TbSuffixs[0:1]
@@ -130,12 +130,12 @@ func (this *selectPlanBuilder) createSelectStmt(rResults []result.RuleResult, st
 			NodeDBName: rule.NodeDB,
 		}
 		for _, tbSuffix := range rule.TbSuffixs {
-			nStmt := this.tableNameAddSuffix(*stmt,rule.NodeDB, tbSuffix)
-			if this.limitRowcount > 0{
+			nStmt := this.tableNameAddSuffix(*stmt, rule.NodeDB, tbSuffix)
+			if this.limitRowcount > 0 {
 				//change limit rowcount
 				nStmt.Limit = new(sqlparser.Limit)
-				nStmt.Limit.Offset = sqlparser.NewIntVal([]byte(fmt.Sprintf("%d",0)))
-				nStmt.Limit.Rowcount = sqlparser.NewIntVal([]byte(fmt.Sprintf("%d",this.limitOffset + this.limitRowcount)))
+				nStmt.Limit.Offset = sqlparser.NewIntVal([]byte(fmt.Sprintf("%d", 0)))
+				nStmt.Limit.Rowcount = sqlparser.NewIntVal([]byte(fmt.Sprintf("%d", this.limitOffset+this.limitRowcount)))
 			}
 			mplan.AddPlanQuery(&nStmt, "")
 		}
@@ -146,10 +146,17 @@ func (this *selectPlanBuilder) createSelectStmt(rResults []result.RuleResult, st
 }
 
 //
-func (this *selectPlanBuilder) tableNameAddSuffix(stmt sqlparser.Select,dbName, tbSuffix string) sqlparser.Select {
+func (this *selectPlanBuilder) tableNameAddSuffix(stmt sqlparser.Select, dbName, tbSuffix string) sqlparser.Select {
 	nStmt := sqlparser.Select{}
 	nStmt = stmt
-	switch expr := nStmt.From[0].(type) {
+	nStmt.From = this.tableNameAddSuffixFrom(nStmt.From, dbName, tbSuffix)
+	return nStmt
+}
+
+//
+func (this *selectPlanBuilder) tableNameAddSuffixFrom(from sqlparser.TableExprs, dbName, tbSuffix string) sqlparser.TableExprs {
+	newFrom := make(sqlparser.TableExprs, 1)
+	switch expr := from[0].(type) {
 	case *sqlparser.AliasedTableExpr:
 		nAli := sqlparser.AliasedTableExpr{
 			Partitions: expr.Partitions,
@@ -159,19 +166,44 @@ func (this *selectPlanBuilder) tableNameAddSuffix(stmt sqlparser.Select,dbName, 
 		if tbn, ok := expr.Expr.(sqlparser.TableName); ok {
 			oldName := tbn.Name.String()
 			newTb := tbn.ToViewName()
-			if !tbn.Qualifier.IsEmpty(){
+			if !tbn.Qualifier.IsEmpty() {
 				newTb.Qualifier = sqlparser.NewTableIdent(dbName)
 			}
 			newTb.Name = sqlparser.NewTableIdent(oldName + "_" + tbSuffix)
 			nAli.Expr = newTb
-			//glog.Info(nStmt.From[0],tbSuffix)
 		}
-		nStmt.From = make(sqlparser.TableExprs, 1)
-		nStmt.From[0] = &nAli
+		if tbn, ok := expr.Expr.(*sqlparser.Subquery); ok {
+			newTb := new(sqlparser.Subquery)
+			newSelect := new(sqlparser.Select)
+			if stmt, ok := tbn.Select.(*sqlparser.Select); ok {
+				newSelect.Cache = stmt.Cache
+				newSelect.Comments = stmt.Comments
+				newSelect.Distinct = stmt.Distinct
+				newSelect.Hints = stmt.Hints
+				newSelect.SelectExprs = stmt.SelectExprs
+				//newSelect.From  = stmt.From
+				newSelect.Where = stmt.Where
+				newSelect.GroupBy = stmt.GroupBy
+				newSelect.Having = stmt.Having
+				newSelect.OrderBy = stmt.OrderBy
+				newSelect.Limit = stmt.Limit
+				newSelect.Lock = stmt.Lock
+				//
+				newSelect.From = this.tableNameAddSuffixFrom(stmt.From, dbName, tbSuffix)
+				newTb.Select = newSelect
+				nAli.Expr = newTb
+			}
+		}
+		newFrom = make(sqlparser.TableExprs, 1)
+		newFrom[0] = &nAli
 	case *sqlparser.ParenTableExpr:
+		newFrom = from
 	case *sqlparser.JoinTableExpr:
+		newFrom = from
+	default:
+		newFrom = from
 	}
-	return nStmt
+	return newFrom
 }
 
 //
