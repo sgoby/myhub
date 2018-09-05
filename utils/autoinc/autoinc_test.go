@@ -24,6 +24,15 @@ import (
 	"runtime"
 )
 
+
+func Test_Snow(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		id := GetSnowflakeID()
+		fmt.Println(id)
+	}
+}
+
+
 func Test_Inc(t *testing.T) {
 	runtime.GOMAXPROCS(4)
 	beginT := time.Now().UnixNano()
