@@ -36,7 +36,7 @@ MyHub能自动停用故障节点数据库，在故障节点数据库恢重启后
 - 支持数据库直接代理转发。
 - 支持（insert,delete,update,replace）到多个node上的子表。
 - 支持自动在多个node上创建分表。
-- 支持主键自增长ID。
+- 支持主键自增长ID, 可以支持Twitter's Snowflake分布式ID,只需把自增长字段类型改为bigint。
 
 ### 安装
 

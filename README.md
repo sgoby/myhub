@@ -40,7 +40,7 @@ Please [get the latest version of the RPM installation package from the release 
 - Support database direct proxy and forwarding.
 - Support (insert,delete,update,replace) to multiple nodes table.
 - Support automatic creation of sub-tables on multiple nodes.
-- Support primary key ID auto increment.
+- Support primary key ID auto increment, support Twitter's Snowflake distributed unique ID also, just change the AUTO_INCREMENT field type to 'bigint'.
 
 ### Install
 
