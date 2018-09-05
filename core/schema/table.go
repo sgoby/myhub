@@ -43,17 +43,17 @@ func newTable(cnf config.Table) (*Table,error){
 	return tb,nil
 }
 //获取自增长键名
-func (this *Table) GetAutoIncrementKey()string{
+func (this *Table) GetAutoIncrementKey() *sqlparser.ColumnDefinition{
 	if this.createDll == nil{
-		return ""
+		return nil
 	}
 	stmt := this.createDll
 	for _,column := range stmt.TableSpec.Columns{
 		if column.Type.Autoincrement{
-			return column.Name.String()
+			return column
 		}
 	}
-	return ""
+	return nil
 }
 //
 func (this *Table) Name() string{
