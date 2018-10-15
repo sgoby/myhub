@@ -17,7 +17,8 @@ Please [get the latest version of the RPM installation package from the release 
 - Support MySQL connection pool, no need to create a new connection each time.
 - Support multiple 'Slave', load balancing between 'Slave'。
 - Support for reading and writing separation(Need to configure the mysql master-slave data to automatically synchronize).
-- Support multi-tenancy。
+- Support config multi-tenancy。
+- Support config file hot loading (just for rpm install mode, modify the config file and make the config file take effect by "myhub reload" command).
 - Support for 'Prepare' feature。
 - Support for maximum connection limit to backend DB.
 - Support SQL log and slow log output.
