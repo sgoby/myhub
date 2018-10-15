@@ -45,7 +45,7 @@ func Test_schema(t *testing.T){
 	}
 	if insertStmt,ok := stmt.(*sqlparser.Insert);ok{
 		vals := insertStmt.Rows.(sqlparser.Values)
-		rRs,err :=  rr.GetShardRule(vals[0][0])
+		rRs,err :=  rr.GetShardRule(vals[0][0],"")
 		if err != nil{
 			fmt.Println("Error:",err)
 			return
@@ -53,7 +53,7 @@ func Test_schema(t *testing.T){
 		fmt.Println("$$$:",rRs)
 	}
 	if selectStmt,ok := stmt.(*sqlparser.Select);ok{
-		rRs,err :=  rr.GetShardRule(selectStmt.Where.Expr)
+		rRs,err :=  rr.GetShardRule(selectStmt.Where.Expr,"")
 		if err != nil{
 			fmt.Println("Error:",err)
 			return

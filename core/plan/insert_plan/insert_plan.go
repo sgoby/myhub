@@ -67,7 +67,7 @@ func BuildInsertPlan(tb *schema.Table, stmt *sqlparser.Insert, manager *rule.Rul
 		}
 	}
 	//glog.Info(sqlparser.String(stmt))
-	rResults, err := manager.GetShardRule(tb.GetRuleName(), valExpr)
+	rResults, err := manager.GetShardRule(tb.GetRuleName(), valExpr,tb.GetRuleKeyValueType())
 	if err != nil {
 		return nil, err
 	}

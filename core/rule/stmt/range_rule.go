@@ -30,7 +30,7 @@ import (
 
 type RuleRange struct {
 	shards    []*Shard
-	strconvInt64 func(expr sqlparser.Expr) (int64,error)
+	strconvInt64 func(expr sqlparser.Expr,keyValType string) (int64,error)
 	rangeType string
 }
 //
@@ -50,15 +50,15 @@ func NewRuleRange(rcnf config.Rule) (*RuleRange,error){
 	return pRange,nil
 }
 //
-func (this *RuleRange)GetShardRule(expr sqlparser.Expr) (rResults []result.RuleResult, err error){
+func (this *RuleRange)GetShardRule(expr sqlparser.Expr,keyValType string) (rResults []result.RuleResult, err error){
 	if expr == nil{
 		return this.GetAllShardRule()
 	}
-	rResults,_,err = this.getSingleShardRule(expr)
+	rResults,_,err = this.getSingleShardRule(expr,keyValType)
 	return
 }
 //
-func (this *RuleRange)getSingleShardRule(expr sqlparser.Expr) (rResults []result.RuleResult,ok bool, err error){
+func (this *RuleRange)getSingleShardRule(expr sqlparser.Expr,keyValType string) (rResults []result.RuleResult,ok bool, err error){
 	switch pExpr := expr.(type) {
 	case *sqlparser.AndExpr:
 		glog.Info(expr,"AndExpr")
@@ -72,33 +72,33 @@ func (this *RuleRange)getSingleShardRule(expr sqlparser.Expr) (rResults []result
 		glog.Info(expr,"ComparisonExpr")
 		switch pExpr.Operator {
 		case sqlparser.EqualStr: // =
-			rResults,err = this.getTbSuffixEq(pExpr.Right)
+			rResults,err = this.getTbSuffixEq(pExpr.Right,keyValType)
 			if len(rResults) > 0 {
 				ok = true
 			}
 		case sqlparser.LessThanStr,sqlparser.LessEqualStr: // <, <=
-			rResults,err = this.getTbSuffixLte(pExpr.Right)
+			rResults,err = this.getTbSuffixLte(pExpr.Right,keyValType)
 			if len(rResults) > 0 {
 				ok = true
 			}
 		case sqlparser.GreaterThanStr,sqlparser.GreaterEqualStr: //>,>=
-			rResults,err = this.getTbSuffixGte(pExpr.Right)
+			rResults,err = this.getTbSuffixGte(pExpr.Right,keyValType)
 			if len(rResults) > 0 {
 				ok = true
 			}
 		case sqlparser.InStr:
-			return this.getSingleShardRule(pExpr.Right)
+			return this.getSingleShardRule(pExpr.Right,keyValType)
 		}
 		return
 	case *sqlparser.RangeCond:
 		glog.Info(expr,"RangeCond")
 		if pExpr.Operator == sqlparser.BetweenStr {
-			fromResults,fromErr := this.getTbSuffixGte(pExpr.From)
+			fromResults,fromErr := this.getTbSuffixGte(pExpr.From,keyValType)
 			if fromErr != nil{
 				err = fromErr
 				return
 			}
-			toResults,toErr:= this.getTbSuffixLte(pExpr.To)
+			toResults,toErr:= this.getTbSuffixLte(pExpr.To,keyValType)
 			if toErr != nil{
 				err = toErr
 				return
@@ -108,12 +108,12 @@ func (this *RuleRange)getSingleShardRule(expr sqlparser.Expr) (rResults []result
 				ok = true
 			}
 		}else if pExpr.Operator == sqlparser.NotBetweenStr{
-			fromResults,fromErr := this.getTbSuffixGte(pExpr.To) // >
+			fromResults,fromErr := this.getTbSuffixGte(pExpr.To,keyValType) // >
 			if fromErr != nil{
 				err = fromErr
 				return
 			}
-			toResults,toErr:= this.getTbSuffixLte(pExpr.From) // <
+			toResults,toErr:= this.getTbSuffixLte(pExpr.From,keyValType) // <
 			if toErr != nil{
 				err = toErr
 				return
@@ -130,7 +130,7 @@ func (this *RuleRange)getSingleShardRule(expr sqlparser.Expr) (rResults []result
 		glog.Info(expr,"ExistsExpr")
 	case *sqlparser.SQLVal:
 		glog.Info(pExpr,"SQLVal")
-		rResults,err = this.getTbSuffixEq(pExpr)
+		rResults,err = this.getTbSuffixEq(pExpr,keyValType)
 		if len(rResults) > 0 {
 			ok = true
 		}
@@ -145,7 +145,7 @@ func (this *RuleRange)getSingleShardRule(expr sqlparser.Expr) (rResults []result
 	case sqlparser.ValTuple:
 		glog.Info(pExpr,"ValTuple")
 		for _,ex := range pExpr{
-			rArr,ok,err := this.getSingleShardRule(ex)
+			rArr,ok,err := this.getSingleShardRule(ex,keyValType)
 			if err != nil{
 				return nil,false,err
 			}
@@ -215,8 +215,8 @@ func (this *RuleRange)unionResults(v1,v2 []result.RuleResult) []result.RuleResul
 }
 //======================================================================
 //获取大于 val 的表后缀 ex: >= 50
-func (this *RuleRange) getTbSuffixGte(expr sqlparser.Expr) (rsArr []result.RuleResult,err error){
-	valNum,err := this.strconvInt64(expr)
+func (this *RuleRange) getTbSuffixGte(expr sqlparser.Expr,keyValType string) (rsArr []result.RuleResult,err error){
+	valNum,err := this.strconvInt64(expr,keyValType)
 	if err != nil{
 		return nil,err
 	}
@@ -228,8 +228,8 @@ func (this *RuleRange) getTbSuffixGte(expr sqlparser.Expr) (rsArr []result.RuleR
 	return
 }
 //获取小于 val 的表后缀 ex: <= 50
-func (this *RuleRange) getTbSuffixLte(expr sqlparser.Expr) (rsArr []result.RuleResult,err error){
-	valNum,err := this.strconvInt64(expr)
+func (this *RuleRange) getTbSuffixLte(expr sqlparser.Expr,keyValType string) (rsArr []result.RuleResult,err error){
+	valNum,err := this.strconvInt64(expr,keyValType)
 	if err != nil{
 		return nil,err
 	}
@@ -241,8 +241,8 @@ func (this *RuleRange) getTbSuffixLte(expr sqlparser.Expr) (rsArr []result.RuleR
 	return
 }
 //获取小于 val 的表后缀 ex: == 50
-func (this *RuleRange) getTbSuffixEq(expr sqlparser.Expr) (rsArr []result.RuleResult,err error){
-	valNum,err := this.strconvInt64(expr)
+func (this *RuleRange) getTbSuffixEq(expr sqlparser.Expr ,keyValType string) (rsArr []result.RuleResult,err error){
+	valNum,err := this.strconvInt64(expr,keyValType)
 	if err != nil{
 		return nil,err
 	}
@@ -273,11 +273,11 @@ func (this *RuleRange) GetAllShardRule()(rResults []result.RuleResult, err error
 	return
 }
 //
-func (this *RuleRange)strconvInt64Entity(expr sqlparser.Expr) (int64,error){
+func (this *RuleRange)strconvInt64Entity(expr sqlparser.Expr,keyValType string) (int64,error){
 	buf := sqlparser.NewTrackedBuffer(nil)
 	expr.Format(buf)
 	if this.rangeType == RANGE_NUMERIE{
-		startNum, err := strconv.ParseInt(ustring.Trim(string(buf.String()),"'","\"","`"), 10, 64)
+		startNum, err := strconv.ParseInt(ustring.Trim(buf.String(),"'","\"","`"), 10, 64)
 		if err != nil {
 			return 0, err
 		}
@@ -285,7 +285,7 @@ func (this *RuleRange)strconvInt64Entity(expr sqlparser.Expr) (int64,error){
 	}
 	if this.rangeType == RANGE_DATA {
 		var err error
-		dateTimeStr := ustring.Trim(string(buf.String()),"'","\"","`")
+		dateTimeStr := ustring.Trim(buf.String(),"'","\"","`")
 		dateTimeStr,err = optimizationDatetime(dateTimeStr);
 		if err != nil {
 			return 0, err

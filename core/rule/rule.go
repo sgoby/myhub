@@ -39,7 +39,7 @@ const (
 //
 type IRule interface {
 	//获取分表后缀
-	GetShardRule(expr sqlparser.Expr) (rResults []result.RuleResult, err error)
+	GetShardRule(expr sqlparser.Expr,keyValType string) (rResults []result.RuleResult, err error)
 }
 //
 func NewRuleManager(cnfs []config.Rule) (*RuleManager, error) {
@@ -69,12 +69,12 @@ func NewRuleManager(cnfs []config.Rule) (*RuleManager, error) {
 	return rManger, nil
 }
 //if expr is nil, will get all shard table
-func (this *RuleManager) GetShardRule(ruleName string,expr sqlparser.Expr) (rResults []result.RuleResult, err error) {
+func (this *RuleManager) GetShardRule(ruleName string,expr sqlparser.Expr,keyValType string) (rResults []result.RuleResult, err error) {
 	rule,ok :=  this.RuleMap[ruleName]
 	if !ok{
 		return rResults,errors.New(fmt.Sprintf("Not found rule: %s",ruleName))
 	}
-	rResults,err = rule.GetShardRule(expr)
+	rResults,err = rule.GetShardRule(expr,keyValType)
 	if err != nil{
 		return;
 	}

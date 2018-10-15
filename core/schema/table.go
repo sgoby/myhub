@@ -20,6 +20,7 @@ import(
 	"github.com/sgoby/sqlparser"
 	"github.com/sgoby/myhub/config"
 	"fmt"
+	"strings"
 )
 //
 type Table struct {
@@ -38,6 +39,13 @@ func newTable(cnf config.Table) (*Table,error){
 		var ok bool
 		if tb.createDll,ok = dll.( *sqlparser.DDL);!ok{
 			return nil,fmt.Errorf("not create sql: %s",cnf.CreateSql)
+		}
+		//
+		if len(tb.config.RuleKeyValueType) < 1{
+			column := tb.GetColumn(tb.config.RuleKey)
+			if column != nil && strings.Contains(strings.ToLower(column.Type.Type),"char"){
+				tb.config.RuleKeyValueType = "varchar"
+			}
 		}
 	}
 	return tb,nil
@@ -64,8 +72,27 @@ func (this *Table) GetRuleKey() string{
 	return this.config.RuleKey
 }
 //
+func (this *Table) GetRuleKeyValueType() string{
+	return this.config.RuleKeyValueType
+}
+//
 func (this *Table) GetRuleName() string{
 	return this.config.Rule
+}
+//
+func (this *Table) GetColumn(name string) *sqlparser.ColumnDefinition{
+	if  this.createDll == nil || this.createDll.TableSpec == nil || this.createDll.TableSpec.Columns == nil{
+		return nil
+	}
+	if len(name) < 1{
+		return nil
+	}
+	for _, column := range this.createDll.TableSpec.Columns {
+		if column.Name.String() == name{
+			return column
+		}
+	}
+	return nil
 }
 //
 func (this *Table) GetCreateStmt() *sqlparser.DDL{

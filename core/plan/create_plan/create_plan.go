@@ -41,7 +41,7 @@ func BuildCreatePlan(tb *schema.Table,stmt *sqlparser.DDL,manager *rule.RuleMana
 	builder := &createPlanBuilder{
 		stmt: stmt,
 	}
-	rResults,err := manager.GetShardRule(tb.GetRuleName(),nil)
+	rResults,err := manager.GetShardRule(tb.GetRuleName(),nil,tb.GetRuleKeyValueType())
 	if err != nil{
 		return nil,err
 	}

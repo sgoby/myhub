@@ -50,7 +50,7 @@ func BuildDeletePlan(tb *schema.Table,stmt *sqlparser.Delete,manager *rule.RuleM
 		expr = nil //get all
 	}
 	//
-	rResults,err := manager.GetShardRule(tb.GetRuleName(),expr)
+	rResults,err := manager.GetShardRule(tb.GetRuleName(),expr,tb.GetRuleKeyValueType())
 	if err != nil{
 		return nil,err
 	}

@@ -114,7 +114,6 @@ func (this *Application) TestConfig(cnf config.Config) (err error) {
 	//
 	return nil
 }
-
 //
 func (this *Application) LoadConfig(cnf config.Config) (err error) {
 	if cnf.WorkerProcesses > 0 {

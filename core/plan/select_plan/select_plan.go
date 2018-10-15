@@ -101,13 +101,13 @@ func BuildSelectPlan(tb *schema.Table, stmt *sqlparser.Select, manager *rule.Rul
 		expr = nil //get all
 	}
 	//
-	rResults, err := manager.GetShardRule(tb.GetRuleName(), expr)
+	rResults, err := manager.GetShardRule(tb.GetRuleName(), expr,tb.GetRuleKeyValueType())
 	if err != nil {
 		return nil, err
 	}
 	//If no matching rule, find all, just for select statement.
 	if isFound && (rResults == nil || len(rResults) < 1) {
-		rResults, err = manager.GetShardRule(tb.GetRuleName(), nil)
+		rResults, err = manager.GetShardRule(tb.GetRuleName(), nil,tb.GetRuleKeyValueType())
 		if err != nil {
 			return nil, err
 		}

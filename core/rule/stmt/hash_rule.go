@@ -23,6 +23,7 @@ import(
 	"strings"
 	"strconv"
 	"fmt"
+	"hash/crc32"
 )
 //config ex:<shard nodeDataBase="db1" between="0-10"/>
 type RuleHash struct {
@@ -90,12 +91,22 @@ func (this *RuleHash)parserRangeExpr(str string) (begin,end int64,err error){
 	return startNum,endNum,nil
 }
 //
-func (this *RuleHash)GetShardRule(expr sqlparser.Expr) (rResults []result.RuleResult, err error){
-	return this.RuleRange.GetShardRule(expr)
+func (this *RuleHash)GetShardRule(expr sqlparser.Expr,keyValType string) (rResults []result.RuleResult, err error){
+	return this.RuleRange.GetShardRule(expr,keyValType)
 }
 //======================================================================
-func (this *RuleHash)strconvInt64Entity(expr sqlparser.Expr) (val int64,err error){
-	val,err =  this.RuleRange.strconvInt64Entity(expr)
+func (this *RuleHash)strconvInt64Entity(expr sqlparser.Expr,keyValType string) (val int64,err error){
+	if len(keyValType) > 1 && strings.ToLower(keyValType) == "varchar" || strings.ToLower(keyValType) == "string"{
+		buf := sqlparser.NewTrackedBuffer(nil)
+		expr.Format(buf)
+		//use hashcode
+		n := crc32.ChecksumIEEE(buf.Bytes())
+		buf.Reset()
+		val = int64(n) % int64(this.maxLen)
+		return
+	}
+	//
+	val,err =  this.RuleRange.strconvInt64Entity(expr,keyValType)
 	val = val % int64(this.maxLen)
 	//glog.Info("======",val)
 	return;

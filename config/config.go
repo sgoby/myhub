@@ -102,10 +102,11 @@ type Database struct {
 
 //
 type Table struct {
-	Name      string `xml:"name,attr"`
-	CreateSql string `xml:"createSql,attr"`
-	Rule      string `xml:"rule,attr"`
-	RuleKey   string `xml:"ruleKey,attr"`
+	Name             string `xml:"name,attr"`
+	CreateSql        string `xml:"createSql,attr"`
+	Rule             string `xml:"rule,attr"`
+	RuleKey          string `xml:"ruleKey,attr"`
+	RuleKeyValueType string `xml:"keyType,attr"` //number,string,date
 	//Shards    []Shard `xml:"shard"`
 }
 type Shard struct {
@@ -126,14 +127,14 @@ type Rule struct {
 // record current config file dir
 var confDir string
 //
-func ParseConfig(cnfPath string,reload bool) (conf *Config, err error) {
+func ParseConfig(cnfPath string, reload bool) (conf *Config, err error) {
 	if len(cnfPath) < 1 {
 		conf = creatDefaultConfig()
 		return
 	}
-	if !reload{
+	if !reload {
 		cnfPath, _, err = optFilePath(cnfPath)
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 	}
