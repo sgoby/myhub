@@ -39,6 +39,7 @@ import (
 	"github.com/sgoby/myhub/tb"
 	"github.com/sgoby/myhub/core/plan/delete_plan"
 	"github.com/sgoby/myhub/backend"
+	"github.com/sgoby/myhub/core/plan/alter_plan"
 )
 
 const (
@@ -306,8 +307,16 @@ func (this *Connector) ComQuery(stmt sqlparser.Statement, query string) (sqltype
 	case *sqlparser.DDL:
 		if nStmt.Action == sqlparser.DropStr || nStmt.Action == sqlparser.TruncateStr{
 			return sqltypes.Result{}, fmt.Errorf("Myhub refused execute: %s",query)
+		}else if nStmt.Action == sqlparser.AlterStr{
+			nStmt,err := sqlparser.ParseAlterStmt(query)
+			if err != nil{
+				return sqltypes.Result{}, err
+			}
+			//
+			stmt = nStmt
+		}else{
+			glog.Info("unKnow DDL, not support:", nStmt)
 		}
-		glog.Info("unKnow DDL, not support:", nStmt)
 	default: //case *sqlparser.OtherRead: //explain
 		var rs sqltypes.Result
 		var err error
@@ -433,6 +442,19 @@ func (this *Connector) buildSchemaPlan(db *schema.Database, pStmt sqlparser.Stat
 		return delete_plan.BuildDeletePlan(tb, stmt, core.App().GetRuleManager())
 	case *sqlparser.DDL:
 		glog.Info("DDL", pStmt)
+	case *sqlparser.Alter:
+		dbName := stmt.Qualifier
+		tbName := stmt.TableName
+		cfgDbName := this.GetDB()
+		if len(dbName) > 0 &&  dbName != cfgDbName{
+			return nil, fmt.Errorf("can not alter %s.%s",dbName,tbName)
+		}
+		tb, _ := this.getSchemaTableByName(tbName)
+		if tb == nil {
+			return nil, fmt.Errorf("not found table %s on  %s",tbName,dbName)
+		}
+		//
+		return alter_plan.BuildAlterPlan(tb, stmt, core.App().GetRuleManager())
 	case *sqlparser.Stream:
 		glog.Info("Stream", pStmt)
 	default:

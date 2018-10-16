@@ -45,10 +45,10 @@ func BuildCreatePlan(tb *schema.Table,stmt *sqlparser.DDL,manager *rule.RuleMana
 	if err != nil{
 		return nil,err
 	}
-	return  builder.createInsertStmt(rResults,stmt)
+	return  builder.createPlans(rResults,stmt)
 }
 //
-func (this *createPlanBuilder)createInsertStmt(rResults []result.RuleResult,stmt *sqlparser.DDL) ([]plan.Plan,error){
+func (this *createPlanBuilder)createPlans(rResults []result.RuleResult,stmt *sqlparser.DDL) ([]plan.Plan,error){
 	var plans []plan.Plan
 	for _,rule := range rResults{
 		mplan := plan.Plan{
