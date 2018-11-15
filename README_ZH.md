@@ -122,7 +122,7 @@ MyHub 监听的host和端口,默认端口:8520
 参数说明：
 - 'name' 连接Myhub的用户名
 - 'passwrod' 连接Myhub的密码
-- 'charset' 字符集
+- 'charset' 字符集，默认: utf8
 - 'db' 可使用的逻辑数据库，多个用','分隔，如:'db1,db2'，'*'表示所有逻辑数据库
 - 'ip' 允许连接的客户端ip支持模糊匹配，'\*'表示所有ip；多个用','分隔；默认'127.0.0.1'；如:'192.168.1.20,192.168.2.\*'。
 
@@ -184,12 +184,12 @@ MyHub 监听的host和端口,默认端口:8520
 - 'dataBase' 逻辑数据库
 - 'dataBase' -> 'name' Myhub 的数据库名(必须唯一)
 - 'dataBase' -> 'proxyDataBase' 代理的节点数据库名
-- 'dataBase' -> 'blacklistSql' SQL黑名单语句，多个用";"分隔，"?"表示通配符，值是可以是SQL文件路径，也可以是SQL语句，ex: delete from user where id = ?
+- 'dataBase' -> 'blacklistSql' 设置SQL黑名单语句，值也可以是SQL文件路径. 多个SQL语句用";"分隔，"?"表示通配符，ex: delete from user where id = ?
 - 'table' 逻辑表
 - 'table' -> 'name' 表名称(必须唯一)
 - 'table' -> 'ruleKey'表示表分片所依赖的字段名
 - 'table' -> 'rule' 分表表分片规则，参见: rules
-- 'table' -> 'createSql' 自动创建分表的create 语句，值是可以是SQL文件路径，也可以是SQL语句
+- 'table' -> 'createSql' 自动创建分表的create SQL语句语句，值也可以是SQL文件路径.
 
 ### 分片规则(rule)配置:
 
