@@ -47,7 +47,7 @@ MyHub能自动停用故障节点数据库，在故障节点数据库恢重启后
 
         wget https://github.com/sgoby/myhub/releases/download/0.0.1/myhub-0.0.1-1.x86_64.rpm
         rpm -ivh myhub-0.0.1-1.x86_64.rpm
-
+        # Default config file path: /usr/local/myhub/conf/myhub.xml
 - 启动
 
         service myhub start
@@ -64,7 +64,9 @@ MyHub能自动停用故障节点数据库，在故障节点数据库恢重启后
         echo $GOPATH
         go build -o bin/myhub src/github.com/sgoby/myhub/cmd/myhub/main.go
         echo Congratulations. Build success!
-
+- 启动
+        ./bin/myhub --cnf conf/myhub.xml
+        
 - Windows 上安装(build_windows.bat)
 
         git clone https://github.com/sgoby/myhub src/github.com/sgoby/myhub
@@ -72,6 +74,8 @@ MyHub能自动停用故障节点数据库，在故障节点数据库恢重启后
         set GOPATH=%GOPATH%;%dir%
         go build -o bin/myhub.exe src/github.com/sgoby/myhub/cmd/myhub/main.go
         echo Congratulations. Build success!
+- 启动
+        ./bin/myhub.exe --cnf conf/myhub.xml
 
 
 # MyHub配置入门
